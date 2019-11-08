@@ -65,7 +65,7 @@ type InvoiceData struct {
 // 然后，您便可以通过操作使用这些 AmazonOrderId 值，ListOrderItems 以获取每个订单的详细订单商品信息。
 //
 // 共享最大请求限额为 30 个，恢复速率为每 2 秒钟 1 个请求。
-func (s *OrderService) ListOrderItems(c *Credential, amazonOrderID, nextToken string) (requestID string, orderItemsResult *OrderItemsResult, err error) {
+func (s *OrderService) ListOrderItems(c *Credential, amazonOrderID string) (requestID string, orderItemsResult *OrderItemsResult, err error) {
 	data := ActionValues("ListOrderItems")
 	data.Set("AmazonOrderId", amazonOrderID)
 

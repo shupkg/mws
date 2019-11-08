@@ -44,7 +44,7 @@ type Marketplace struct {
 func (s *SellerService) ListMarketplaceParticipations(c *Credential, nextToken string) (string, *MarketplaceParticipationsResult, error) {
 	data := ActionValues("ListMarketplaceParticipations")
 	if nextToken != "" {
-		data := ActionValues("ListMarketplaceParticipationsByNextToken")
+		data = ActionValues("ListMarketplaceParticipationsByNextToken")
 		var result struct {
 			BaseResponse
 			Result *MarketplaceParticipationsResult `xml:"ListMarketplaceParticipationsByNextTokenResult"`
@@ -55,7 +55,6 @@ func (s *SellerService) ListMarketplaceParticipations(c *Credential, nextToken s
 		return result.RequestID, result.Result, nil
 	}
 
-	data = ActionValues("ListMarketplaceParticipations")
 	var result struct {
 		BaseResponse
 		Result *MarketplaceParticipationsResult `xml:"ListMarketplaceParticipationsResult"`

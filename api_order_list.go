@@ -101,8 +101,19 @@ type PaymentExecutionDetailItem struct {
 // **限制**
 //
 // 共享最大请求限额为 6 个，恢复速率为每分钟 1 个请求。
-func (s *OrderService) ListOrders(c *Credential, marketplaces []string, startTime time.Time, timeIsUpdate bool, params ...Values) (string, *OrdersResult, error) {
+func (s *OrderService) ListOrders(c *Credential, marketplaces []string, startTime time.Time, timeIsUpdate bool, maxPerPage int64, params ...Values) (string, *OrdersResult, error) {
 	data := ActionValues("ListOrders")
+	if !startTime.IsZero() {
+		if timeIsUpdate {
+			data.SetTime("LastUpdatedAfter", startTime)
+		} else {
+			data.SetTime("CreatedAfter", startTime)
+		}
+	}
+	if maxPerPage > 0 && maxPerPage != 100 {
+		data.SetInt("MaxResultsPerPage", maxPerPage)
+	}
+	data.Sets("MarketplaceId.Id", marketplaces...)
 	data.SetAll(params...)
 
 	var response struct {
@@ -117,7 +128,6 @@ func (s *OrderService) ListOrders(c *Credential, marketplaces []string, startTim
 
 //ListOrdersByNextToken 同 ListOrders
 func (s *OrderService) ListOrdersByNextToken(c *Credential, nextToken string) (string, *OrdersResult, error) {
-
 	data := ActionValues("ListOrdersByNextToken")
 	data.Set("NextToken", nextToken)
 
