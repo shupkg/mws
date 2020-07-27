@@ -49,7 +49,7 @@ func (v Values) Del(name string) {
 
 // Dels deletes the values associated with name.
 func (v Values) Dels(name string) {
-	if v != nil {
+	if len(v) > 0 {
 		for key := range v {
 			if strings.HasPrefix(key, name+".") {
 				delete(v, key)
