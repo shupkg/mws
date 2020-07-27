@@ -25,7 +25,7 @@ type Client struct {
 func newClient(api, version string) *Client {
 	return &Client{
 		httpc:     &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}},
-		userAgent: fmt.Sprintf("go-mws-client/v0.0.1 (Language=%s; Platform=%s-%s)", strings.Replace(runtime.Version(), "go", "go/", -1), runtime.GOOS, runtime.GOARCH),
+		userAgent: fmt.Sprintf("go-mws-sdk/v%s (Language=%s; Platform=%s-%s; sdk=github.com/shupkg/mws)", Version, strings.Replace(runtime.Version(), "go", "go/", -1), runtime.GOOS, runtime.GOARCH),
 		api:       api,
 		version:   version,
 	}
@@ -34,7 +34,7 @@ func newClient(api, version string) *Client {
 //GetBytes 请求
 func (c *Client) GetBytes(credential *Credential, data Values) ([]byte, error) {
 	c.doSignature(credential, data)
-	u := fmt.Sprintf("https://%s%s", Env.GetMWSDomain(credential.MarketplaceID), c.api)
+	u := GetServiceBaseUrl(credential.MarketplaceID, c.api)
 
 	req, err := http.NewRequest(http.MethodPost, u, strings.NewReader(data.Encode()))
 	if err != nil {
@@ -86,7 +86,7 @@ func (c *Client) doSignature(credential *Credential, data Values) {
 	data.Set(keyTimestamp, time.Now().UTC().Format(time.RFC3339))
 	data.Del(keySignature)
 
-	s := "POST\n" + Env.GetMWSDomain(credential.MarketplaceID) + "\n" + c.api + "\n" + data.Encode()
+	s := "POST\n" + GetServiceHost(credential.MarketplaceID) + "\n" + c.api + "\n" + data.Encode()
 
 	mac := hmac.New(sha256.New, []byte(credential.SecretKey))
 	mac.Write([]byte(s))

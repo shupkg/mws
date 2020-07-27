@@ -5,8 +5,7 @@ import (
 	"time"
 )
 
-//Env 环境方法
-var Env env
+const Version = "0.1.1"
 
 var (
 	//名称
@@ -46,7 +45,7 @@ var (
 		"AAHKV2X7AFYLW":  "amazon.cn",     //中
 	}
 	//开发者平台域名
-	mwsDomainMap = map[string]string{
+	serviceDomainMap = map[string]string{
 		"ATVPDKIKX0DER":  "mws.amazonservices.com",    //美
 		"A2EUQ1WTGCTBG2": "mws.amazonservices.ca",     //加
 		"A1AM78C64UM0Y8": "mws.amazonservices.com.mx", //墨
@@ -126,12 +125,9 @@ var (
 	}
 )
 
-type env struct {
-}
-
 //GetTimezone 获取站点时区
-func (e env) GetTimezone(marketplaceID string) *time.Location {
-	innaName := tzMap[marketplaceID]
+func GetTimezone(marketplace string) *time.Location {
+	innaName := tzMap[marketplace]
 	if innaName != "" {
 		l, err := time.LoadLocation(innaName)
 		if err == nil {
@@ -141,48 +137,53 @@ func (e env) GetTimezone(marketplaceID string) *time.Location {
 	return time.UTC
 }
 
-//GetWebDomain 获取站点网站域名
-func (e env) GetWebDomain(marketplaceID string) string {
-	d := webDomainMap[marketplaceID]
+//GetAmazonHost 获取站点网站域名
+func GetAmazonHost(marketplace string) string {
+	d := webDomainMap[marketplace]
 	if d == "" {
 		d = "amazon.com"
 	}
 	return d
 }
 
-//GetWebURL 获取站点域名前缀(含scheme)
-func (e env) GetWebURL(marketplaceID string) string {
-	return "https://www." + e.GetWebDomain(marketplaceID)
+//GetWebUrl 获取站点域名前缀(含scheme)
+func GetWebUrl(marketplace string) string {
+	return "https://www." + GetAmazonHost(marketplace)
 }
 
-//GetSellercentralURL 获取站点登录域名(含scheme)
-func (e env) GetSellercentralURL(marketplaceID string) string {
-	return "https://sellercentral." + e.GetWebDomain(marketplaceID)
+//GetSellercentralUrl 获取站点登录域名(含scheme)
+func GetSellercentralUrl(marketplace string) string {
+	return "https://sellercentral." + GetAmazonHost(marketplace)
 }
 
-//GetMWSDomain 获取mws域名
-func (e env) GetMWSDomain(marketplaceID string) string {
-	d := mwsDomainMap[marketplaceID]
+//GetServiceHost 获取服务域名
+func GetServiceHost(marketplace string) string {
+	d := serviceDomainMap[marketplace]
 	if d == "" {
 		d = "mws.amazonservices.com"
 	}
 	return d
 }
 
+//GetServiceBaseUrl 获取服务 BaseURL
+func GetServiceBaseUrl(marketplace, api string) string {
+	return "https://" + GetServiceHost(marketplace) + api
+}
+
 //GetCountryName 获取站点国家名称
-func (e env) GetCountryName(marketplaceID string) string {
-	name := nameMap[marketplaceID]
+func GetCountryName(marketplace string) string {
+	name := nameMap[marketplace]
 	if name == "" {
-		name = fmt.Sprintf("未知[%s]", marketplaceID)
+		name = fmt.Sprintf("未知[%s]", marketplace)
 	}
 	return name
 }
 
 //GetLinkedMarketplace 获取关联的商城国家ID
-func (e env) GetLinkedMarketplace(marketplaceID string) []string {
-	marketplaces := linkMap[marketplaceID]
+func GetLinkedMarketplace(marketplace string) []string {
+	marketplaces := linkMap[marketplace]
 	if len(marketplaces) == 0 {
-		marketplaces = []string{marketplaceID}
+		marketplaces = []string{marketplace}
 	}
 	return marketplaces
 }
