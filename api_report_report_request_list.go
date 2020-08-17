@@ -1,6 +1,9 @@
 package mws
 
-import "time"
+import (
+	"context"
+	"time"
+)
 
 //ReportRequestListResult 获取报告请求列表结果
 type ReportRequestListResult struct {
@@ -30,14 +33,14 @@ type ReportRequestInfo struct {
 // 对于首次请求，最多可返回 100 个报告请求。如果要返回更多报告请求，则将响应中所返回的 HasNext 值设置为 true。要检索所有结果，您可以将 NextToken 参数的值重复传递给 GetReportRequestListByNextToken 操作，直至 HasNext 的返回值为 false。
 //
 // GetReportRequestList 操作的最大请求限额为 10 个，恢复速率为每 45 秒 1 个请求。有关限制术语的定义，请参阅限制。
-func (s *ReportService) GetReportRequestList(c *Credential, params ...Values) (string, *ReportRequestListResult, error) {
+func (s *ReportService) GetReportRequestList(ctx context.Context, c *Credential, params ...Values) (string, *ReportRequestListResult, error) {
 	data := ActionValues("GetReportRequestList")
 	data.SetAll(params...)
 	var response struct {
 		BaseResponse
 		ReportRequestList *ReportRequestListResult `xml:"GetReportRequestListResult"`
 	}
-	if err := s.GetModel(c, data, &response); err != nil {
+	if _, err := s.FetchStruct(ctx, c, data, &response); err != nil {
 		return "", nil, err
 	}
 	return response.RequestID, response.ReportRequestList, nil
@@ -48,14 +51,14 @@ func (s *ReportService) GetReportRequestList(c *Credential, params ...Values) (s
 // GetReportRequestListByNextToken 操作返回与查询参数相匹配的报告请求列表。该操作使用之前请求提供给 GetReportRequestListByNextToken 或 GetReportRequestList 的 NextToken 值,其中前一请求中的 HasNext 值为 true。
 //
 // GetReportRequestListByNextToken 操作的最大请求限额为 30 个，恢复速率为每 2 秒 1 个请求。有关限制术语的定义，请参阅限制。
-func (s *ReportService) GetReportRequestListByNextToken(c *Credential, nextToken string) (string, *ReportRequestListResult, error) {
+func (s *ReportService) GetReportRequestListByNextToken(ctx context.Context, c *Credential, nextToken string) (string, *ReportRequestListResult, error) {
 	data := ActionValues("GetReportRequestListByNextToken")
 	data.Set("NextToken", nextToken)
 	var response struct {
 		BaseResponse
 		ReportRequestList *ReportRequestListResult `xml:"GetReportRequestLisByNextTokentResult"`
 	}
-	if err := s.GetModel(c, data, &response); err != nil {
+	if _, err := s.FetchStruct(ctx, c, data, &response); err != nil {
 		return "", nil, err
 	}
 	return response.RequestID, response.ReportRequestList, nil

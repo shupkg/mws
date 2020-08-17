@@ -1,5 +1,7 @@
 package mws
 
+import "context"
+
 //FulfillmentInventoryService 库存管理
 type FulfillmentInventoryService struct {
 	*Client
@@ -48,7 +50,7 @@ type InventorySupplyList struct {
 // `QueryStartDateTime` 此日期用于选择您在某个指定日期后（或当时）已更改库存供应情况的商品，日期格式为 ISO 8601。	如果未指定 SellerSkus 的值必填。同时指定 QueryStartDateTime 和 SellerSkus 的值时，将返回一个错误。类型：xs:dateTime
 //
 // `ResponseGroup` 指明您是否想执行 ListInventorySupply 操作以返回 SupplyDetail 元素。 ResponseGroup 值：`Basic` - 不包括响应中的 SupplyDetail 元素, `Detailed` - 在响应中包含 SupplyDetail 元素, 默认值：Basic, 类型：xs:string
-func (s *FulfillmentInventoryService) ListInventorySupply(c *Credential, params ...Values) (string, *InventorySupplyResult, error) {
+func (s *FulfillmentInventoryService) ListInventorySupply(ctx context.Context, c *Credential, params ...Values) (string, *InventorySupplyResult, error) {
 	data := ActionValues("ListInventorySupply")
 	data.SetAll(params...)
 
@@ -56,21 +58,21 @@ func (s *FulfillmentInventoryService) ListInventorySupply(c *Credential, params 
 		BaseResponse
 		InventorySupplyResult *InventorySupplyResult `xml:"ListInventorySupplyResult"`
 	}
-	if err := s.GetModel(c, data, &response); err != nil {
+	if _, err := s.FetchStruct(ctx, c, data, &response); err != nil {
 		return "", nil, err
 	}
 	return response.RequestID, response.InventorySupplyResult, nil
 }
 
 //ListInventorySupplyByNextToken 同 ListInventorySupply
-func (s *FulfillmentInventoryService) ListInventorySupplyByNextToken(c *Credential, nextToken string) (string, *InventorySupplyResult, error) {
+func (s *FulfillmentInventoryService) ListInventorySupplyByNextToken(ctx context.Context, c *Credential, nextToken string) (string, *InventorySupplyResult, error) {
 	data := ActionValues("ListInventorySupply")
 	data.Set("NextToken", nextToken)
 	var response struct {
 		BaseResponse
 		InventorySupplyResult *InventorySupplyResult `xml:"ListInventorySupplyByNextTokenResult"`
 	}
-	if err := s.GetModel(c, data, &response); err != nil {
+	if _, err := s.FetchStruct(ctx, c, data, &response); err != nil {
 		return "", nil, err
 	}
 	return response.RequestID, response.InventorySupplyResult, nil

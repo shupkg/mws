@@ -1,5 +1,7 @@
 package mws
 
+import "context"
+
 //OrderItemsResult .
 type OrderItemsResult struct {
 	NextToken     string
@@ -65,7 +67,7 @@ type InvoiceData struct {
 // 然后，您便可以通过操作使用这些 AmazonOrderId 值，ListOrderItems 以获取每个订单的详细订单商品信息。
 //
 // 共享最大请求限额为 30 个，恢复速率为每 2 秒钟 1 个请求。
-func (s *OrderService) ListOrderItems(c *Credential, amazonOrderID string) (requestID string, orderItemsResult *OrderItemsResult, err error) {
+func (s *OrderService) ListOrderItems(ctx context.Context, c *Credential, amazonOrderID string) (requestID string, orderItemsResult *OrderItemsResult, err error) {
 	data := ActionValues("ListOrderItems")
 	data.Set("AmazonOrderId", amazonOrderID)
 
@@ -73,14 +75,14 @@ func (s *OrderService) ListOrderItems(c *Credential, amazonOrderID string) (requ
 		BaseResponse
 		OrderItems *OrderItemsResult `xml:"ListOrderItemsResult"`
 	}
-	if err := s.GetModel(c, data, &response); err != nil {
+	if _, err := s.FetchStruct(ctx, c, data, &response); err != nil {
 		return "", nil, err
 	}
 	return response.RequestID, response.OrderItems, nil
 }
 
 //ListOrderItemsByNextToken 同 ListOrderItems
-func (s *OrderService) ListOrderItemsByNextToken(c *Credential, amazonOrderID, nextToken string) (string, *OrderItemsResult, error) {
+func (s *OrderService) ListOrderItemsByNextToken(ctx context.Context, c *Credential, amazonOrderID, nextToken string) (string, *OrderItemsResult, error) {
 	data := ActionValues("ListOrderItemsByNextToken")
 	data.Set("NextToken", nextToken)
 
@@ -88,7 +90,7 @@ func (s *OrderService) ListOrderItemsByNextToken(c *Credential, amazonOrderID, n
 		BaseResponse
 		OrderItems *OrderItemsResult `xml:"ListOrderItemsByNextTokenResult"`
 	}
-	if err := s.GetModel(c, data, &response); err != nil {
+	if _, err := s.FetchStruct(ctx, c, data, &response); err != nil {
 		return "", nil, err
 	}
 	return response.RequestID, response.OrderItems, nil

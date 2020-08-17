@@ -1,6 +1,9 @@
 package mws
 
-import "time"
+import (
+	"context"
+	"time"
+)
 
 //ReportListResult 获取报告列表的结果模型
 type ReportListResult struct {
@@ -29,7 +32,7 @@ type ReportInfo struct {
 // 所发布订单报告如未经确认，则设置为 false。(1:true, 0:false -1:未设置)此过滤器仅对订单报告有效；不支持商品报告。
 //
 // 操作的最大请求限额为 10 个，恢复速率为每分钟 1 个请求。
-func (s *ReportService) GetReportList(c *Credential, params ...Values) (string, *ReportListResult, error) {
+func (s *ReportService) GetReportList(ctx context.Context, c *Credential, params ...Values) (string, *ReportListResult, error) {
 	data := ActionValues("GetReportList")
 	data.SetAll(params...)
 	// data.SetInt("MaxCount", maxCount)
@@ -43,7 +46,7 @@ func (s *ReportService) GetReportList(c *Credential, params ...Values) (string, 
 		BaseResponse
 		ReportList *ReportListResult `xml:"GetReportListResult"`
 	}
-	if err := s.GetModel(c, data, &response); err != nil {
+	if _, err := s.FetchStruct(ctx, c, data, &response); err != nil {
 		return "", nil, err
 	}
 	return response.RequestID, response.ReportList, nil
@@ -55,14 +58,14 @@ func (s *ReportService) GetReportList(c *Credential, params ...Values) (string, 
 //
 // 返回与查询参数相匹配的报告列表，其中前一调用中的 HasNext 值为 true。
 // 操作的最大请求限额为 30 个，恢复速率为每 2 秒 1 个请求。
-func (s *ReportService) GetReportListByNextToken(c *Credential, nextToken string) (string, *ReportListResult, error) {
+func (s *ReportService) GetReportListByNextToken(ctx context.Context, c *Credential, nextToken string) (string, *ReportListResult, error) {
 	data := ActionValues("GetReportListByNextToken")
 	data.Set("NextToken", nextToken)
 	var response struct {
 		BaseResponse
 		ReportList *ReportListResult `xml:"GetReportListByNextTokenResult"`
 	}
-	if err := s.GetModel(c, data, &response); err != nil {
+	if _, err := s.FetchStruct(ctx, c, data, &response); err != nil {
 		return "", nil, err
 	}
 	return response.RequestID, response.ReportList, nil

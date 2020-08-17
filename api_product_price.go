@@ -1,5 +1,7 @@
 package mws
 
+import "context"
+
 //GetMyPriceForASINResponse 商品价格获取响应体
 type GetMyPriceForASINResponse struct {
 	BaseResponse
@@ -54,13 +56,13 @@ type SKUIdentifier struct {
 // GetMyPriceForSKU 根据 SellerSKU，返回您自己的商品的价格信息。
 //
 // GetMyPriceForSKU 操作会根据您指定的 SellerSKU 和 MarketplaceId，返回您自己的商品的价格信息。请注意，如果您提交了并未销售的商品的 SellerSKU，则此操作会返回空的 Offers 元素。此操作最多可返回 20 款商品的价格信息。
-func (s *ProductService) GetMyPriceForSKU(c *Credential, marketplace string, sellerSKUList []string, itemCondition string) (requestID string, prices []GetMyPriceForSKUResult, err error) {
+func (s *ProductService) GetMyPriceForSKU(ctx context.Context, c *Credential, marketplace string, sellerSKUList []string, itemCondition string) (requestID string, prices []GetMyPriceForSKUResult, err error) {
 	data := ActionValues("GetMyPriceForSKU")
 	data.Set("MarketplaceId", marketplace)
 	data.Sets("SellerSKUList.SKU", sellerSKUList...)
 	data.Set("ItemCondition", itemCondition)
 	var result GetMyPriceForSKUResponse
-	if err = s.GetModel(c, data, &result); err != nil {
+	if _, err = s.FetchStruct(ctx, c, data, &result); err != nil {
 		return
 	}
 	requestID = result.RequestID
@@ -71,13 +73,14 @@ func (s *ProductService) GetMyPriceForSKU(c *Credential, marketplace string, sel
 // GetMyPriceForASIN 根据 ASIN，返回您自己的商品的价格信息。
 //
 // GetMyPriceForASIN 操作与 GetMyPriceForSKU 大体相同，但前者使用 MarketplaceId 和 ASIN 来唯一标识一件商品，且不会返回 SKUIdentifier 元素。
-func (s *ProductService) GetMyPriceForASIN(c *Credential, marketplace string, asinList []string, itemCondition string) (requestID string, prices []GetMyPriceForASINResult, err error) {
+func (s *ProductService) GetMyPriceForASIN(ctx context.Context, c *Credential, marketplace string, asinList []string, itemCondition string) (requestID string, prices []GetMyPriceForASINResult, err error) {
 	data := ActionValues("GetMyPriceForASIN")
 	data.Set("MarketplaceId", marketplace)
 	data.Sets("ASINList.ASIN", asinList...)
 	data.Set("ItemCondition", itemCondition)
 	var result GetMyPriceForASINResponse
-	if err = s.GetModel(c, data, &result); err != nil {
+	if _, err = s.FetchStruct(ctx, c, data, &result)
+		err != nil {
 		return
 	}
 	requestID = result.RequestID

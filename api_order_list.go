@@ -1,6 +1,9 @@
 package mws
 
-import "time"
+import (
+	"context"
+	"time"
+)
 
 //OrdersResult 订单结果
 type OrdersResult struct {
@@ -101,7 +104,7 @@ type PaymentExecutionDetailItem struct {
 // **限制**
 //
 // 共享最大请求限额为 6 个，恢复速率为每分钟 1 个请求。
-func (s *OrderService) ListOrders(c *Credential, marketplaces []string, startTime time.Time, timeIsUpdate bool, maxPerPage int64, params ...Values) (string, *OrdersResult, error) {
+func (s *OrderService) ListOrders(ctx context.Context, c *Credential, marketplaces []string, startTime time.Time, timeIsUpdate bool, maxPerPage int64, params ...Values) (string, *OrdersResult, error) {
 	data := ActionValues("ListOrders")
 	if !startTime.IsZero() {
 		if timeIsUpdate {
@@ -120,14 +123,14 @@ func (s *OrderService) ListOrders(c *Credential, marketplaces []string, startTim
 		BaseResponse
 		Orders *OrdersResult `xml:"ListOrdersResult"`
 	}
-	if err := s.GetModel(c, data, &response); err != nil {
+	if _, err := s.FetchStruct(ctx, c, data, &response); err != nil {
 		return "", nil, err
 	}
 	return response.RequestID, response.Orders, nil
 }
 
 //ListOrdersByNextToken 同 ListOrders
-func (s *OrderService) ListOrdersByNextToken(c *Credential, nextToken string) (string, *OrdersResult, error) {
+func (s *OrderService) ListOrdersByNextToken(ctx context.Context, c *Credential, nextToken string) (string, *OrdersResult, error) {
 	data := ActionValues("ListOrdersByNextToken")
 	data.Set("NextToken", nextToken)
 
@@ -135,7 +138,7 @@ func (s *OrderService) ListOrdersByNextToken(c *Credential, nextToken string) (s
 		BaseResponse
 		Orders *OrdersResult `xml:"ListOrdersByNextTokenResult"`
 	}
-	if err := s.GetModel(c, data, &response); err != nil {
+	if _, err := s.FetchStruct(ctx, c, data, &response); err != nil {
 		return "", nil, err
 	}
 	return response.RequestID, response.Orders, nil

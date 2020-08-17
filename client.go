@@ -1,9 +1,9 @@
 package mws
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
-	"crypto/tls"
 	"encoding/base64"
 	"encoding/xml"
 	"fmt"
@@ -24,19 +24,19 @@ type Client struct {
 
 func newClient(api, version string) *Client {
 	return &Client{
-		httpc:     &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}},
+		httpc:     &http.Client{},
 		userAgent: fmt.Sprintf("go-mws-sdk/v%s (Language=%s; Platform=%s-%s; sdk=github.com/shupkg/mws)", Version, strings.Replace(runtime.Version(), "go", "go/", -1), runtime.GOOS, runtime.GOARCH),
 		api:       api,
 		version:   version,
 	}
 }
 
-//GetBytes 请求
-func (c *Client) GetBytes(credential *Credential, data Values) ([]byte, error) {
+//FetchBytes 请求
+func (c *Client) FetchBytes(ctx context.Context, credential *Credential, data Values) ([]byte, error) {
 	c.doSignature(credential, data)
 	u := GetServiceBaseUrl(credential.MarketplaceID, c.api)
 
-	req, err := http.NewRequest(http.MethodPost, u, strings.NewReader(data.Encode()))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, u, strings.NewReader(data.Encode()))
 	if err != nil {
 		return nil, err
 	}
@@ -66,13 +66,14 @@ func (c *Client) GetBytes(credential *Credential, data Values) ([]byte, error) {
 	return v, &errResp
 }
 
-//GetModel 请求并解析成指定模型
-func (c *Client) GetModel(credential *Credential, data Values, result interface{}) error {
-	v, err := c.GetBytes(credential, data)
+//FetchStruct 请求并解析成指定模型
+func (c *Client) FetchStruct(ctx context.Context, credential *Credential, data Values, result interface{}) ([]byte, error) {
+	v, err := c.FetchBytes(ctx, credential, data)
 	if err != nil {
-		return err
+		return v, err
 	}
-	return xml.Unmarshal(v, result)
+	err = xml.Unmarshal(v, result)
+	return v, err
 }
 
 //对参数签名
@@ -95,11 +96,11 @@ func (c *Client) doSignature(credential *Credential, data Values) {
 }
 
 //GetServiceStatus 获取服务状态
-func (c *Client) GetServiceStatus(credential *Credential) (string, error) {
+func (c *Client) GetServiceStatus(ctx context.Context, credential *Credential) (string, error) {
 	result := struct {
 		Status string `xml:"GetServiceStatusResult>Status"`
 	}{}
-	err := c.GetModel(credential, ActionValues("GetServiceStatus"), &result)
+	_, err := c.FetchStruct(ctx, credential, ActionValues("GetServiceStatus"), &result)
 	if err != nil {
 		return "", err
 	}

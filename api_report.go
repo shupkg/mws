@@ -1,5 +1,7 @@
 package mws
 
+import "context"
+
 //ReportService 报表服务
 type ReportService struct {
 	*Client
@@ -23,8 +25,8 @@ func Reports() *ReportService {
 // 有关使用 Content-MD5 标头的更多信息，请参阅亚马逊 MWS 开发者指南。
 //
 // 操作的最大请求限额为 15 个，恢复速率为每分钟 1 个请求。
-func (s *ReportService) GetReport(c *Credential, ReportID string) ([]byte, error) {
+func (s *ReportService) GetReport(ctx context.Context, c *Credential, ReportID string) ([]byte, error) {
 	data := ActionValues("GetReport")
 	data.Set("ReportId", ReportID)
-	return s.GetBytes(c, data)
+	return s.FetchBytes(ctx, c, data)
 }
