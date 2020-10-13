@@ -14,6 +14,10 @@ import (
 	"time"
 )
 
+var CreateHTTPClient = func() *http.Client {
+	return &http.Client{}
+}
+
 //Client Client
 type Client struct {
 	httpc     *http.Client
@@ -24,7 +28,7 @@ type Client struct {
 
 func newClient(api, version string) *Client {
 	return &Client{
-		httpc:     &http.Client{},
+		httpc:     CreateHTTPClient(),
 		userAgent: fmt.Sprintf("go-mws-sdk/v%s (Language=%s; Platform=%s-%s; sdk=github.com/shupkg/mws)", Version, strings.Replace(runtime.Version(), "go", "go/", -1), runtime.GOOS, runtime.GOARCH),
 		api:       api,
 		version:   version,
