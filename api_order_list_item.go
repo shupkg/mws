@@ -82,7 +82,7 @@ func (s *OrderService) ListOrderItems(ctx context.Context, c *Credential, amazon
 }
 
 //ListOrderItemsByNextToken 同 ListOrderItems
-func (s *OrderService) ListOrderItemsByNextToken(ctx context.Context, c *Credential, amazonOrderID, nextToken string) (string, *OrderItemsResult, error) {
+func (s *OrderService) ListOrderItemsByNextToken(ctx context.Context, c *Credential, nextToken string) (string, *OrderItemsResult, error) {
 	data := ActionValues("ListOrderItemsByNextToken")
 	data.Set("NextToken", nextToken)
 

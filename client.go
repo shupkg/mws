@@ -18,6 +18,12 @@ var CreateHTTPClient = func() *http.Client {
 	return &http.Client{}
 }
 
+var dbg = false
+
+func SetDebug(debug bool) {
+	dbg = debug
+}
+
 //Client Client
 type Client struct {
 	httpc     *http.Client
@@ -55,6 +61,18 @@ func (c *Client) FetchBytes(ctx context.Context, credential *Credential, data Va
 	v, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return v, err
+	}
+
+	if dbg {
+		log.Debugf("-------------------------")
+		log.Debugf("请求地址: %s", u)
+		log.Debugf("请求参数: %s", data.Encode())
+		if len(v) > 500 {
+			log.Debugf("响应内容: %d", len(v))
+		} else {
+			log.Debugf("响应内容: %s", string(v))
+		}
+		log.Debugf("-------------------------")
 	}
 
 	if resp.StatusCode == http.StatusOK {
