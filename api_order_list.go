@@ -17,8 +17,9 @@ type OrdersResult struct {
 type Order struct {
 	AmazonOrderID                string                        `xml:"AmazonOrderId"`                //亚马逊所定义的订单编码，格式为 3-7-7。
 	SellerOrderID                string                        `xml:"SellerOrderId"`                //卖家所定义的订单编码。
-	PurchaseDate                 *time.Time                    `xml:"PurchaseDate"`                 //创建订单的日期。
-	LastUpdateDate               *time.Time                    `xml:"LastUpdateDate"`               //订单的最后更新日期
+	MarketplaceID                string                        `xml:"MarketplaceId"`                //订单生成所在商城的匿名编码。
+	PurchaseDate                 time.Time                     `xml:"PurchaseDate"`                 //创建订单的日期。
+	LastUpdateDate               time.Time                     `xml:"LastUpdateDate"`               //订单的最后更新日期
 	OrderStatus                  string                        `xml:"OrderStatus"`                  //当前的订单状态。
 	FulfillmentChannel           string                        `xml:"FulfillmentChannel"`           //订单配送方式：亚马逊配送 (AFN) 或卖家自行配送 (MFN)。
 	SalesChannel                 string                        `xml:"SalesChannel"`                 //订单中第一件商品的销售渠道。
@@ -29,7 +30,6 @@ type Order struct {
 	NumberOfItemsShipped         int                           `xml:"NumberOfItemsShipped"`         //已配送的商品数量。
 	NumberOfItemsUnshipped       int                           `xml:"NumberOfItemsUnshipped"`       //未配送的商品数量。
 	PaymentMethod                string                        `xml:"PaymentMethod"`                //订单的主要付款方式。COD - 货到付款。仅适用于中国 (CN) 和日本 (JP)。CVS - 便利店。仅适用于日本 (JP)。Other - COD 和 CVS 之外的付款方式。注： 可使用多种次级付款方式为 PaymentMethod = COD的订单付款。每种次级付款方式均表示为 PaymentExecutionDetailItem 对象。
-	MarketplaceID                string                        `xml:"MarketplaceId"`                //订单生成所在商城的匿名编码。
 	BuyerEmail                   string                        `xml:"BuyerEmail"`                   //买家的匿名电子邮件地址。
 	BuyerName                    string                        `xml:"BuyerName"`                    //买家姓名。
 	BuyerCounty                  string                        `xml:"BuyerCounty"`                  //This element is used only in the Brazil marketplace.
@@ -38,10 +38,10 @@ type Order struct {
 	TFMShipmentStatus            string                        `xml:"TFMShipmentStatus"`            //亚马逊 TFM订单的状态。仅当ShippedByAmazonTFM = True时返回。请注意：即使当 ShippedByAmazonTFM = True 时，如果您还没有创建货件，也不会返回 TFMShipmentStatus。值： PendingPickUp, LabelCanceled, PickedUp, AtDestinationFC, Delivered, RejectedByBuyer, Undeliverable, ReturnedToSeller 注： 亚马逊 TFM 仅适用于中国 (CN)。
 	CbaDisplayableShippingLabel  string                        `xml:"CbaDisplayableShippingLabel"`  //卖家自定义的配送方式，属于Checkout by Amazon (CBA) 所支持的四种标准配送设置中的一种。有关更多信息，请参阅您所在商城 Amazon Payments 帮助中心的“设置灵活配送方式”主题。 注： CBA 仅适用于美国 (US)、英国 (UK) 和德国 (DE) 的卖家。
 	OrderType                    string                        `xml:"OrderType"`                    //订单类型。StandardOrder - 包含当前有库存商品的订单。Preorder -所含预售商品（发布日期晚于当前日期）的订单。 注： Preorder 仅在日本 (JP) 是可行的OrderType 值。
-	EarliestShipDate             *time.Time                    `xml:"EarliestShipDate"`             //您承诺的订单发货时间范围的第一天。日期格式为 ISO 8601。 仅对卖家配送网络 (MFN) 订单返回。
-	LatestShipDate               *time.Time                    `xml:"LatestShipDate"`               //您承诺的订单发货时间范围的最后一天。日期格式为 ISO 8601。对卖家配送网络 (MFN)	和亚马逊物流 (AFN) 订单返回。
-	EarliestDeliveryDate         *time.Time                    `xml:"EarliestDeliveryDate"`         //您承诺的订单送达时间范围的第一天。日期格式为 ISO 8601。仅对没有 PendingAvailability、Pending 或 Canceled状态的 MFN 订单返回。
-	LatestDeliveryDate           *time.Time                    `xml:"LatestDeliveryDate"`           //您承诺的订单送达时间范围的最后一天。日期格式为 ISO 8601。仅对没有 PendingAvailability、Pending 或 Canceled状态的 MFN 订单返回。
+	EarliestShipDate             time.Time                     `xml:"EarliestShipDate"`             //您承诺的订单发货时间范围的第一天。日期格式为 ISO 8601。 仅对卖家配送网络 (MFN) 订单返回。
+	LatestShipDate               time.Time                     `xml:"LatestShipDate"`               //您承诺的订单发货时间范围的最后一天。日期格式为 ISO 8601。对卖家配送网络 (MFN)	和亚马逊物流 (AFN) 订单返回。
+	EarliestDeliveryDate         time.Time                     `xml:"EarliestDeliveryDate"`         //您承诺的订单送达时间范围的第一天。日期格式为 ISO 8601。仅对没有 PendingAvailability、Pending 或 Canceled状态的 MFN 订单返回。
+	LatestDeliveryDate           time.Time                     `xml:"LatestDeliveryDate"`           //您承诺的订单送达时间范围的最后一天。日期格式为 ISO 8601。仅对没有 PendingAvailability、Pending 或 Canceled状态的 MFN 订单返回。
 	IsBusinessOrder              bool                          `xml:"IsBusinessOrder"`              //true if the order is an Amazon Business order. An Amazon Business order is an order where the buyer is a Verified Business Buyer and the seller is an Amazon Business Seller. For more information about the Amazon Business Seller Program
 	PurchaseOrderNumber          string                        `xml:"PurchaseOrderNumber"`          //	he purchase order (PO) number entered by the buyer at checkout.
 	IsPrime                      bool                          `xml:"IsPrime"`                      //true if the order is a seller-fulfilled Amazon Prime order.

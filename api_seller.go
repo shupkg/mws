@@ -10,7 +10,7 @@ type SellerService struct {
 //Seller Seller
 func Seller() *SellerService {
 	return &SellerService{
-		Client: newClient("/Sellers/2011-07-01", "2011-07-01"),
+		Client: newClient("/SellerStats/2011-07-01", "2011-07-01"),
 	}
 }
 

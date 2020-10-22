@@ -44,7 +44,7 @@ func newClient(api, version string) *Client {
 //FetchBytes 请求
 func (c *Client) FetchBytes(ctx context.Context, credential *Credential, data Values) ([]byte, error) {
 	c.doSignature(credential, data)
-	u := GetServiceBaseUrl(credential.MarketplaceID, c.api)
+	u := "https://" + Amazon.GetServiceHost(credential.MarketplaceID) + c.api
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, u, strings.NewReader(data.Encode()))
 	if err != nil {
@@ -109,7 +109,7 @@ func (c *Client) doSignature(credential *Credential, data Values) {
 	data.Set(keyTimestamp, time.Now().UTC().Format(time.RFC3339))
 	data.Del(keySignature)
 
-	s := "POST\n" + GetServiceHost(credential.MarketplaceID) + "\n" + c.api + "\n" + data.Encode()
+	s := "POST\n" + Amazon.GetServiceHost(credential.MarketplaceID) + "\n" + c.api + "\n" + data.Encode()
 
 	mac := hmac.New(sha256.New, []byte(credential.SecretKey))
 	mac.Write([]byte(s))
