@@ -34,7 +34,11 @@ type countryMap struct {
 }
 
 func newMap() *countryMap {
-	cMap := &countryMap{}
+	cMap := &countryMap{
+		countries:      map[string]Country{},
+		marketplaceMap: map[string]string{},
+		areaMap:        map[string][]string{},
+	}
 	cMap.ids = []string{"US", "CA", "MX", "BR", "GB", "FR", "DE", "IT", "ES", "IN", "AR", "TR", "AU", "JP", "CN"}
 	cMap.areas = []string{"NA", "EU", "AU", "JP"}
 	cMap.marketplaces = []string{
@@ -53,7 +57,7 @@ func newMap() *countryMap {
 			MarketplaceID: "ATVPDKIKX0DER",
 			WebDomain:     "amazon.com",
 			ServiceDomain: "mws.amazonservices.com",
-			Tz: Timezone{"America/Los_Angeles", "洛杉矶"},
+			Tz:            Timezone{"America/Los_Angeles", "洛杉矶"},
 		},
 		"CA": {
 			ID:            "CA",
@@ -62,7 +66,7 @@ func newMap() *countryMap {
 			MarketplaceID: "A2EUQ1WTGCTBG2",
 			WebDomain:     "amazon.ca",
 			ServiceDomain: "mws.amazonservices.ca",
-			Tz: Timezone{"America/Toronto", "多伦多"},
+			Tz:            Timezone{"America/Toronto", "多伦多"},
 		},
 		"MX": {
 			ID:            "MX",
@@ -71,7 +75,7 @@ func newMap() *countryMap {
 			MarketplaceID: "A1AM78C64UM0Y8",
 			WebDomain:     "amazon.com.mx",
 			ServiceDomain: "mws.amazonservices.com.mx",
-			Tz: Timezone{"America/Mexico_City", "墨西哥城"},
+			Tz:            Timezone{"America/Mexico_City", "墨西哥城"},
 		},
 		"BR": {
 			ID:            "BR",
@@ -80,7 +84,7 @@ func newMap() *countryMap {
 			MarketplaceID: "A2Q3Y263D00KWC",
 			WebDomain:     "amazon.com.br",
 			ServiceDomain: "mws.amazonservices.com",
-			Tz: Timezone{"America/Sao_Paulo", "圣保罗"},
+			Tz:            Timezone{"America/Sao_Paulo", "圣保罗"},
 		},
 		"GB": {
 			ID:            "GB",
@@ -89,7 +93,7 @@ func newMap() *countryMap {
 			MarketplaceID: "A1F83G8C2ARO7P",
 			WebDomain:     "amazon.co.uk",
 			ServiceDomain: "mws-eu.amazonservices.com",
-			Tz: Timezone{"Europe/London", "伦敦"},
+			Tz:            Timezone{"Europe/London", "伦敦"},
 		},
 		"FR": {
 			ID:            "FR",
@@ -98,7 +102,7 @@ func newMap() *countryMap {
 			MarketplaceID: "A13V1IB3VIYZZH",
 			WebDomain:     "amazon.fr",
 			ServiceDomain: "mws-eu.amazonservices.com",
-			Tz: Timezone{"Europe/Paris", "巴黎"},
+			Tz:            Timezone{"Europe/Paris", "巴黎"},
 		},
 		"DE": {
 			ID:            "DE",
@@ -107,7 +111,7 @@ func newMap() *countryMap {
 			MarketplaceID: "A1PA6795UKMFR9",
 			WebDomain:     "amazon.de",
 			ServiceDomain: "mws-eu.amazonservices.com",
-			Tz: Timezone{"Europe/Berlin", "柏林"},
+			Tz:            Timezone{"Europe/Berlin", "柏林"},
 		},
 		"IT": {
 			ID:            "IT",
@@ -116,7 +120,7 @@ func newMap() *countryMap {
 			MarketplaceID: "APJ6JRA9NG5V4",
 			WebDomain:     "amazon.it",
 			ServiceDomain: "mws-eu.amazonservices.com",
-			Tz: Timezone{"Europe/Rome", "罗马"},
+			Tz:            Timezone{"Europe/Rome", "罗马"},
 		},
 		"ES": {
 			ID:            "ES",
@@ -125,7 +129,7 @@ func newMap() *countryMap {
 			MarketplaceID: "A1RKKUPIHCS9HS",
 			WebDomain:     "amazon.es",
 			ServiceDomain: "mws-eu.amazonservices.com",
-			Tz: Timezone{"Europe/Madrid", "马德里"},
+			Tz:            Timezone{"Europe/Madrid", "马德里"},
 		},
 		"IN": {
 			ID:            "IN",
@@ -134,7 +138,7 @@ func newMap() *countryMap {
 			MarketplaceID: "A21TJRUUN4KGV",
 			WebDomain:     "amazon.in",
 			ServiceDomain: "mws.amazonservices.in",
-			Tz: Timezone{"Asia/Kolkata", "加尔各答"},
+			Tz:            Timezone{"Asia/Kolkata", "加尔各答"},
 		},
 		"AR": {
 			ID:            "AR",
@@ -143,7 +147,7 @@ func newMap() *countryMap {
 			MarketplaceID: "A2VIGQ35RCS4UG",
 			WebDomain:     "amazon.ae",
 			ServiceDomain: "mws-eu.amazonservices.com",
-			Tz: Timezone{"Asia/Dubai", "迪拜"},
+			Tz:            Timezone{"Asia/Dubai", "迪拜"},
 		},
 		"TR": {
 			ID:            "TR",
@@ -152,7 +156,7 @@ func newMap() *countryMap {
 			MarketplaceID: "A33AVAJ2PDY3EV",
 			WebDomain:     "amazon.com.tr",
 			ServiceDomain: "mws-eu.amazonservices.com",
-			Tz: Timezone{"Europe/Istanbul", "伊斯坦布尔"},
+			Tz:            Timezone{"Europe/Istanbul", "伊斯坦布尔"},
 		},
 		"AU": {
 			ID:            "AU",
@@ -161,7 +165,7 @@ func newMap() *countryMap {
 			MarketplaceID: "A39IBJ37TRP1C6",
 			WebDomain:     "amazon.com.au",
 			ServiceDomain: "mws.amazonservices.com.au",
-			Tz: Timezone{"Australia/Sydney", "悉尼"},
+			Tz:            Timezone{"Australia/Sydney", "悉尼"},
 		},
 		"JP": {
 			ID:            "JP",
@@ -170,7 +174,7 @@ func newMap() *countryMap {
 			MarketplaceID: "A1VC38T7YXB528",
 			WebDomain:     "amazon.co.jp",
 			ServiceDomain: "mws.amazonservices.jp",
-			Tz: Timezone{"Asia/Tokyo", "东京"},
+			Tz:            Timezone{"Asia/Tokyo", "东京"},
 		},
 		"CN": {
 			ID:            "CN",
@@ -179,7 +183,7 @@ func newMap() *countryMap {
 			MarketplaceID: "AAHKV2X7AFYLW",
 			WebDomain:     "amazon.cn",
 			ServiceDomain: "mws.amazonservices.com.cn",
-			Tz: Timezone{"Asia/Shanghai", "上海"},
+			Tz:            Timezone{"Asia/Shanghai", "上海"},
 		},
 	}
 	cMap.areaMap = map[string][]string{

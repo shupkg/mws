@@ -1,13 +1,10 @@
 package mws
 
-//OrderService 订单服务
-type OrderService struct {
-	*Client
+//Orders 创建订单服务
+func Orders(credential Credential) *OrderClient {
+	return &OrderClient{createClient(ApiOption("/Orders/2013-09-01", "2013-09-01"), CredentialOption(credential))}
 }
 
-//Orders 创建订单服务
-func Orders() *OrderService {
-	return &OrderService{
-		Client: newClient("/Orders/2013-09-01", "2013-09-01"),
-	}
+type OrderClient struct {
+	*Client
 }

@@ -1,33 +1,18 @@
 package mws
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 //FulfillmentInventoryService 库存管理
-type FulfillmentInventoryService struct {
+type FulfillmentInventoryClient struct {
 	*Client
 }
 
 //FulfillmentInventory FulfillmentInventory
-func FulfillmentInventory() *FulfillmentInventoryService {
-	return &FulfillmentInventoryService{
-		Client: newClient("/FulfillmentInventory/2010-10-01", "2010-10-01"),
-	}
-}
-
-//InventorySupplyResult InventorySupplyResult
-type InventorySupplyResult struct {
-	NextToken           string
-	InventorySupplyList []*InventorySupplyList `xml:"InventorySupplyList>member"`
-}
-
-//InventorySupplyList InventorySupplyList
-type InventorySupplyList struct {
-	Condition             string
-	TotalSupplyQuantity   int
-	InStockSupplyQuantity int
-	FNSKU                 string
-	ASIN                  string
-	SellerSKU             string
+func FulfillmentInventory(credential Credential) *FulfillmentInventoryClient {
+	return &FulfillmentInventoryClient{createClient(ApiOption("/FulfillmentInventory/2010-10-01", "2010-10-01"), CredentialOption(credential))}
 }
 
 // ListInventorySupply 返回卖家库存状况信息。
@@ -50,30 +35,48 @@ type InventorySupplyList struct {
 // `QueryStartDateTime` 此日期用于选择您在某个指定日期后（或当时）已更改库存供应情况的商品，日期格式为 ISO 8601。	如果未指定 SellerSkus 的值必填。同时指定 QueryStartDateTime 和 SellerSkus 的值时，将返回一个错误。类型：xs:dateTime
 //
 // `ResponseGroup` 指明您是否想执行 ListInventorySupply 操作以返回 SupplyDetail 元素。 ResponseGroup 值：`Basic` - 不包括响应中的 SupplyDetail 元素, `Detailed` - 在响应中包含 SupplyDetail 元素, 默认值：Basic, 类型：xs:string
-func (s *FulfillmentInventoryService) ListInventorySupply(ctx context.Context, c *Credential, params ...Values) (string, *InventorySupplyResult, error) {
-	data := ActionValues("ListInventorySupply")
-	data.SetAll(params...)
+func (s *FulfillmentInventoryClient) ListInventorySupply(ctx context.Context, SellerSkus []string, QueryStartDateTime time.Time, ResponseGroup string) (string, *InventorySupplyResult, error) {
+	data := Param{}.SetAction("ListInventorySupply")
+	data.Set("SellerSkus.member", SellerSkus)
+	data.Set("QueryStartDateTime", QueryStartDateTime)
+	data.Set("ResponseGroup", ResponseGroup)
 
 	var response struct {
-		BaseResponse
+		ResponseMetadata
 		InventorySupplyResult *InventorySupplyResult `xml:"ListInventorySupplyResult"`
 	}
-	if _, err := s.FetchStruct(ctx, c, data, &response); err != nil {
+	if err := s.getResult(ctx, data, &response); err != nil {
 		return "", nil, err
 	}
 	return response.RequestID, response.InventorySupplyResult, nil
 }
 
 //ListInventorySupplyByNextToken 同 ListInventorySupply
-func (s *FulfillmentInventoryService) ListInventorySupplyByNextToken(ctx context.Context, c *Credential, nextToken string) (string, *InventorySupplyResult, error) {
-	data := ActionValues("ListInventorySupply")
+func (s *FulfillmentInventoryClient) ListInventorySupplyByNextToken(ctx context.Context, nextToken string) (*InventorySupplyResult, error) {
+	data := Param{}.SetAction("ListInventorySupply")
 	data.Set("NextToken", nextToken)
 	var response struct {
-		BaseResponse
+		ResponseMetadata
 		InventorySupplyResult *InventorySupplyResult `xml:"ListInventorySupplyByNextTokenResult"`
 	}
-	if _, err := s.FetchStruct(ctx, c, data, &response); err != nil {
-		return "", nil, err
+	if err := s.getResult(ctx, data, &response); err != nil {
+		return nil, err
 	}
-	return response.RequestID, response.InventorySupplyResult, nil
+	return response.InventorySupplyResult, nil
+}
+
+//InventorySupplyResult InventorySupplyResult
+type InventorySupplyResult struct {
+	NextToken           string
+	InventorySupplyList []*InventorySupplyList `xml:"InventorySupplyList>member"`
+}
+
+//InventorySupplyList InventorySupplyList
+type InventorySupplyList struct {
+	Condition             string
+	TotalSupplyQuantity   int
+	InStockSupplyQuantity int
+	FNSKU                 string
+	ASIN                  string
+	SellerSKU             string
 }

@@ -2,6 +2,48 @@ package mws
 
 import "context"
 
+//ListOrderItems 根据您指定的 AmazonOrderId 返回订单商品。
+//
+// http://docs.developer.amazonservices.com/en_US/orders-2013-09-01/Orders_ListOrderItems.html
+// http://docs.developer.amazonservices.com/en_US/orders-2013-09-01/Orders_ListOrderItemsByNextToken.html
+//
+// 该 ListOrderItems 操作可为您所指定的 AmazonOrderId 返回订单商品信息。
+// 订单商品信息包括 Title、ASIN、 SellerSKU、ItemPrice、 ShippingPrice 以及税费和促销信息。
+//
+// 您可以通过 ListOrders 操作来检索订单商品信息，进而找到您在指定时间段内所创建或更新的订单。
+// 所返回的订单中包含 AmazonOrderId。
+// 然后，您便可以通过操作使用这些 AmazonOrderId 值，ListOrderItems 以获取每个订单的详细订单商品信息。
+//
+// 共享最大请求限额为 30 个，恢复速率为每 2 秒钟 1 个请求。
+func (c *Client) ListOrderItems(ctx context.Context, amazonOrderID string) (orderItemsResult *OrderItemsResult, err error) {
+	data := Param{}.SetAction("ListOrderItems")
+	data.Set("AmazonOrderId", amazonOrderID)
+
+	var response struct {
+		ResponseMetadata
+		OrderItems *OrderItemsResult `xml:"ListOrderItemsResult"`
+	}
+	if err := c.getResult(ctx, data, &response); err != nil {
+		return nil, err
+	}
+	return response.OrderItems, nil
+}
+
+//ListOrderItemsByNextToken 同 ListOrderItems
+func (c *Client) ListOrderItemsByNextToken(ctx context.Context, nextToken string) (*OrderItemsResult, error) {
+	data := Param{}.SetAction("ListOrderItemsByNextToken")
+	data.Set("NextToken", nextToken)
+
+	var response struct {
+		ResponseMetadata
+		OrderItems *OrderItemsResult `xml:"ListOrderItemsByNextTokenResult"`
+	}
+	if err := c.getResult(ctx, data, &response); err != nil {
+		return nil, err
+	}
+	return response.OrderItems, nil
+}
+
 //OrderItemsResult .
 type OrderItemsResult struct {
 	NextToken     string
@@ -52,46 +94,4 @@ type InvoiceData struct {
 	BuyerSelectedInvoiceCategory string `xml:"BuyerSelectedInvoiceCategory"` //买家在下订单时选择的发票类目信息。
 	InvoiceTitle                 string `xml:"InvoiceTitle"`                 //买家指定的发票抬头。
 	InvoiceInformation           string `xml:"InvoiceInformation"`           //发票信息。 NotApplicable - 买家不- 要求开具发票。 BuyerSelectedInvoiceCategory - 亚马逊建议将此项操作返回的BuyerSelectedInvoiceCategory值作为发票上的发票类目 ProductTitle - 亚马逊建议将商品名称作为发票上的发票类目。
-}
-
-//ListOrderItems 根据您指定的 AmazonOrderId 返回订单商品。
-//
-// http://docs.developer.amazonservices.com/en_US/orders-2013-09-01/Orders_ListOrderItems.html
-// http://docs.developer.amazonservices.com/en_US/orders-2013-09-01/Orders_ListOrderItemsByNextToken.html
-//
-// 该 ListOrderItems 操作可为您所指定的 AmazonOrderId 返回订单商品信息。
-// 订单商品信息包括 Title、ASIN、 SellerSKU、ItemPrice、 ShippingPrice 以及税费和促销信息。
-//
-// 您可以通过 ListOrders 操作来检索订单商品信息，进而找到您在指定时间段内所创建或更新的订单。
-// 所返回的订单中包含 AmazonOrderId。
-// 然后，您便可以通过操作使用这些 AmazonOrderId 值，ListOrderItems 以获取每个订单的详细订单商品信息。
-//
-// 共享最大请求限额为 30 个，恢复速率为每 2 秒钟 1 个请求。
-func (s *OrderService) ListOrderItems(ctx context.Context, c *Credential, amazonOrderID string) (requestID string, orderItemsResult *OrderItemsResult, err error) {
-	data := ActionValues("ListOrderItems")
-	data.Set("AmazonOrderId", amazonOrderID)
-
-	var response struct {
-		BaseResponse
-		OrderItems *OrderItemsResult `xml:"ListOrderItemsResult"`
-	}
-	if _, err := s.FetchStruct(ctx, c, data, &response); err != nil {
-		return "", nil, err
-	}
-	return response.RequestID, response.OrderItems, nil
-}
-
-//ListOrderItemsByNextToken 同 ListOrderItems
-func (s *OrderService) ListOrderItemsByNextToken(ctx context.Context, c *Credential, nextToken string) (string, *OrderItemsResult, error) {
-	data := ActionValues("ListOrderItemsByNextToken")
-	data.Set("NextToken", nextToken)
-
-	var response struct {
-		BaseResponse
-		OrderItems *OrderItemsResult `xml:"ListOrderItemsByNextTokenResult"`
-	}
-	if _, err := s.FetchStruct(ctx, c, data, &response); err != nil {
-		return "", nil, err
-	}
-	return response.RequestID, response.OrderItems, nil
 }

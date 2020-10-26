@@ -2,16 +2,14 @@ package mws
 
 import "context"
 
-//ReportService 报表服务
-type ReportService struct {
-	*Client
+//Reports 创建报表服务
+func Reports(credential Credential) *ReportClient {
+	return &ReportClient{createClient(ApiOption("/", "2009-01-01"), CredentialOption(credential))}
 }
 
-//Reports 创建报表服务
-func Reports() *ReportService {
-	return &ReportService{
-		Client: newClient("/", "2009-01-01"),
-	}
+//ReportClient 报表服务
+type ReportClient struct {
+	*Client
 }
 
 //GetReport 操作返回报告的内容及所返回报告正文的 Content-MD5 标头。报告从生成之日起保留 90 天。
@@ -25,8 +23,9 @@ func Reports() *ReportService {
 // 有关使用 Content-MD5 标头的更多信息，请参阅亚马逊 MWS 开发者指南。
 //
 // 操作的最大请求限额为 15 个，恢复速率为每分钟 1 个请求。
-func (s *ReportService) GetReport(ctx context.Context, c *Credential, ReportID string) ([]byte, error) {
-	data := ActionValues("GetReport")
-	data.Set("ReportId", ReportID)
-	return s.FetchBytes(ctx, c, data)
+func (s *ReportClient) GetReport(ctx context.Context, ReportID string) ([]byte, error) {
+	data := Param{}.SetAction("GetReport").Set("ReportId", ReportID)
+	return s.getBytes(ctx, data)
 }
+
+//ReportClient
