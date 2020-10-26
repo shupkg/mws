@@ -18,33 +18,65 @@ var CreateHTTPClient = func() *http.Client {
 	return &http.Client{}
 }
 
-var dbg = false
-
-func SetDebug(debug bool) {
-	dbg = debug
-}
-
 //Client Client
 type Client struct {
-	httpc     *http.Client
-	userAgent string
-	api       string
-	version   string
+	httpc      *http.Client
+	userAgent  string
+	api        string
+	version    string
+	credential Credential
+	debug      bool
+
+	id  string
+	raw []byte
 }
 
-func newClient(api, version string) *Client {
-	return &Client{
+type ClientOption interface {
+	Apply(*Client)
+}
+
+type ClientOptionFunc func(*Client)
+
+func (f ClientOptionFunc) Apply(c *Client) {
+	f(c)
+}
+
+type RequestID interface {
+	GetRequestID() string
+}
+
+func createClient(options ...ClientOption) *Client {
+	c := &Client{
 		httpc:     CreateHTTPClient(),
 		userAgent: fmt.Sprintf("go-mws-sdk/v%s (Language=%s; Platform=%s-%s; sdk=github.com/shupkg/mws)", Version, strings.Replace(runtime.Version(), "go", "go/", -1), runtime.GOOS, runtime.GOARCH),
-		api:       api,
-		version:   version,
+	}
+	c.SetOptions(options...)
+	return c
+}
+
+func (c *Client) SetOptions(options ...ClientOption) {
+	for _, option := range options {
+		option.Apply(c)
 	}
 }
 
-//FetchBytes 请求
-func (c *Client) FetchBytes(ctx context.Context, credential *Credential, data Values) ([]byte, error) {
-	c.doSignature(credential, data)
-	u := "https://" + Amazon.GetServiceHost(credential.MarketplaceID) + c.api
+func (c *Client) GetRequestID() string {
+	return c.id
+}
+
+func (c *Client) GetRaw() []byte {
+	return c.raw
+}
+
+//getResult 请求
+func (c *Client) getBytes(ctx context.Context, data Param) ([]byte, error) {
+	c.id = ""
+	if len(c.raw) > 0 {
+		c.raw = c.raw[:0]
+	}
+
+	c.doSignature(c.credential, data)
+	u := "https://" + Amazon.GetServiceHost(c.credential.MarketplaceID) + c.api
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, u, strings.NewReader(data.Encode()))
 	if err != nil {
@@ -60,10 +92,10 @@ func (c *Client) FetchBytes(ctx context.Context, credential *Credential, data Va
 	defer resp.Body.Close()
 	v, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return v, err
+		return c.raw, err
 	}
-
-	if dbg {
+	c.raw = v
+	if c.debug {
 		log.Debugf("-------------------------")
 		log.Debugf("请求地址: %s", u)
 		log.Debugf("请求参数: %s", data.Encode())
@@ -76,30 +108,46 @@ func (c *Client) FetchBytes(ctx context.Context, credential *Credential, data Va
 	}
 
 	if resp.StatusCode == http.StatusOK {
-		return v, nil
+		return c.raw, nil
 	}
 
 	//请求不成功
-	errResp := ErrorResponse{}
-	err = xml.Unmarshal(v, &errResp)
-	if err != nil {
+	ex := Error{}
+	if err := xml.Unmarshal(v, &ex); err != nil {
 		return v, err
 	}
-	return v, &errResp
+	return v, &ex
 }
 
-//FetchStruct 请求并解析成指定模型
-func (c *Client) FetchStruct(ctx context.Context, credential *Credential, data Values, result interface{}) ([]byte, error) {
-	v, err := c.FetchBytes(ctx, credential, data)
+//getResult 请求
+func (c *Client) getResult(ctx context.Context, data Param, result interface{}) error {
+	v, err := c.getBytes(ctx, data)
 	if err != nil {
-		return v, err
+		return err
 	}
-	err = xml.Unmarshal(v, result)
-	return v, err
+	c.raw = v
+	if len(v) > 0 {
+		if result != nil {
+			err = xml.Unmarshal(v, result)
+			if err == nil {
+				return err
+			}
+			if meta, ok := result.(RequestID); ok {
+				c.id = meta.GetRequestID()
+			}
+		}
+
+		if c.id == "" {
+			var meta ResponseMetadata
+			_ = xml.Unmarshal(v, &meta)
+			c.id = meta.GetRequestID()
+		}
+	}
+	return nil
 }
 
 //对参数签名
-func (c *Client) doSignature(credential *Credential, data Values) {
+func (c *Client) doSignature(credential Credential, data Param) {
 	data.Set(keyVersion, c.version)
 	data.Set(keyAWSAccessKeyID, credential.AWSAccessKeyID)
 	data.Set(keyMWSAuthToken, credential.MWSAuthToken)
@@ -118,12 +166,12 @@ func (c *Client) doSignature(credential *Credential, data Values) {
 }
 
 //GetServiceStatus 获取服务状态
-func (c *Client) GetServiceStatus(ctx context.Context, credential *Credential) (string, error) {
+func (c *Client) GetServiceStatus(ctx context.Context) (string, error) {
 	result := struct {
 		Status string `xml:"GetServiceStatusResult>Status"`
 	}{}
-	_, err := c.FetchStruct(ctx, credential, ActionValues("GetServiceStatus"), &result)
-	if err != nil {
+
+	if err := c.getResult(ctx, Param{}.SetAction("GetServiceStatus"), &result); err != nil {
 		return "", err
 	}
 	return result.Status, nil

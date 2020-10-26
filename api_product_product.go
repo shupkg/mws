@@ -2,15 +2,31 @@ package mws
 
 import "context"
 
-//GetMatchingProductForIDResponse 商品信息获取响应体
-type GetMatchingProductForIDResponse struct {
-	BaseResponse
-	ProductResults []GetMatchingProductForIDResult `xml:"GetMatchingProductForIdResult"`
+//GetMatchingProductForID 根据 ASIN、GCID、SellerSKU、UPC、EAN、ISBN 和 JAN，返回商品及其属性列表。
+//根据您指定的商品编码值列表，GetMatchingProductForId 操作会返回一个包含商品及其属性的列表。可能的商品编号包括：ASIN、GCID、SellerSKU、UPC、EAN、ISBN 和 JAN。
+func (s *ProductClient) GetMatchingProductForID(ctx context.Context, request ProductRequest) (string, []*Product, error) {
+	data := Param{}.SetAction("GetMatchingProductForId").Load(request)
+
+	var response struct {
+		ResponseMetadata
+		ProductResults []GetMatchingProductForIDResult `xml:"GetMatchingProductForIdResult"`
+	}
+
+	if err := s.getResult(ctx,  data, &response); err != nil {
+		return "", nil, err
+	}
+	var products []*Product
+	for _, result := range response.ProductResults {
+		if result.Status == "Success" {
+			products = append(products, result.Products...)
+		}
+	}
+	return response.RequestID, products, nil
 }
 
 //GetMatchingProductForIDResult GetMatchingProductForIdResult
 type GetMatchingProductForIDResult struct {
-	BaseResponse
+	ResponseMetadata
 	ID       string     `xml:"Id,attr"`
 	IDType   string     `xml:"IdType,attr"`
 	Status   string     `xml:"status,attr"`
@@ -83,25 +99,4 @@ type Image struct {
 	URL    string    `xml:"URL"`
 	Width  UnitValue `xml:"Width"`
 	Height UnitValue `xml:"Height"`
-}
-
-//GetMatchingProductForID 根据 ASIN、GCID、SellerSKU、UPC、EAN、ISBN 和 JAN，返回商品及其属性列表。
-//根据您指定的商品编码值列表，GetMatchingProductForId 操作会返回一个包含商品及其属性的列表。可能的商品编号包括：ASIN、GCID、SellerSKU、UPC、EAN、ISBN 和 JAN。
-func (s *ProductService) GetMatchingProductForID(ctx context.Context, c *Credential, marketplaceID string, idType string, idList ...string) (string, []*Product, error) {
-	data := ActionValues("GetMatchingProductForId")
-	data.Set("MarketplaceId", marketplaceID)
-	data.Set("IdType", idType)
-	data.Sets("IdList.Id", idList...)
-
-	var response GetMatchingProductForIDResponse
-	if _, err := s.FetchStruct(ctx, c, data, &response); err != nil {
-		return "", nil, err
-	}
-	var products []*Product
-	for _, result := range response.ProductResults {
-		if result.Status == "Success" {
-			products = append(products, result.Products...)
-		}
-	}
-	return response.RequestID, products, nil
 }

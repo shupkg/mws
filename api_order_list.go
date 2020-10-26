@@ -5,6 +5,136 @@ import (
 	"time"
 )
 
+type ListOrdersRequest struct {
+	//指定某一格式为 ISO 8601 的日期，用以选择在该日期之后（或当天）创建的订单。
+	//同时指定 CreatedAfter 和 LastUpdatedAfter 的值时，将返回一个错误。但必须指定其中一个
+	//必须不迟于两分钟，且在请求提交时间之前。
+	CreatedAfter time.Time
+
+	//指定某一格式为 ISO 8601 的日期，用以选择在该日期之前（或当天）创建的订单。
+	//只有在已指定 CreatedAfter 的值时，才可指定该参数的值。 如果已指定 LastUpdatedAfter 的值，则不可指定该参数的值。
+	//必须迟于 CreatedAfter 的值。 必须不迟于两分钟，且在请求提交时间之前。
+	//默认值：现在时间减去两分钟
+	CreatedBefore time.Time
+
+	//指定某一格式为 ISO 8601 的日期，用以选择最后更新日期为该日期之后（或当天）的订单。更新即为对订单状态进行更改，包括新订单的创建。包括亚马逊和卖家所进行的更新。
+	//	同时指定 CreatedAfter 和 LastUpdatedAfter 的值时，将返回一个错误。
+	//	如果指定了 LastUpdatedAfter 的值，则无法指定 BuyerEmail 和 SellerOrderId 的值。
+	//	必须不迟于两分钟，且在请求提交时间之前。
+	LastUpdatedAfter time.Time
+
+	//指定某一格式为 ISO 8601 的日期，用以选择最后更新日期为该日期之前（或当天）的订单。更新即为对订单状态进行更改，包括新订单的创建。包括亚马逊和卖家所进行的更新。
+	//	只有在已指定 LastUpdatedAfter 的值时，才可指定该参数的值。如果已指定 CreatedAfter 的值，则不可指定该参数的值。
+	//	必须迟于 LastUpdatedAfter 的值。 必须不迟于两分钟，且在请求提交时间之前。
+	//	默认值：现在时间减去两分钟
+	LastUpdatedBefore time.Time
+
+	//OrderStatus 值的列表。用来选择当前状态与您所指定的某个状态值相符的订单。
+	//	PendingAvailability 只有预订订单才有此状态。订单已生成，但是付款未授权且商品的发售日期是将来的某一天。订单尚不能进行发货。请注意：仅在日本 (JP)，Preorder 才可能是一个 OrderType 值。
+	//	Pending             订单已生成，但是付款未授权。订单尚不能进行发货。请注意：对于 OrderType = Standard 的订单，初始的订单状态是 Pending。对于 OrderType = Preorder 的订单（仅适用于 JP），初始的订单状态是 PendingAvailability，当进入付款授权流程时，订单状态将变为 Pending。
+	//	Unshipped           付款已经过授权，订单已准备好进行发货，但订单中商品尚未发运。
+	//	PartiallyShipped    订单中的一个或多个（但并非全部）商品已经发货。
+	//	Shipped             订单中的所有商品均已发货。
+	//	InvoiceUnconfirmed  订单中的所有商品均已发货。但是卖家还没有向亚马逊确认已经向买家寄出发票。请注意：此参数仅适用于中国地区。
+	//	Canceled            订单已取消。
+	//	Unfulfillable       订单无法进行配送。该状态仅适用于通过亚马逊零售网站之外的渠道下达但由亚马逊进行配送的订单。
+	//	在此版本的 “订单 API”部分 中，必须同时使用 Unshipped 和 PartiallyShipped。仅使用其中一个状态值，则会返回错误。
+	OrderStatus []string `mws:"OrderStatus.Status"`
+
+	//MarketplaceId 值的列表。用来选择您所指定商城中的订单。卖家注册销售商品的商城。 如果该值不是卖家注册销售商品的商城，则会返回错误。最大值：50
+	MarketplaceId []string `mws:"MarketplaceId.Id"`
+
+	//指明订单配送方式的结构化列表。
+	//	AFN: 亚马逊配送
+	//	MFN: 卖家自行配送
+	//	默认：全部
+	FulfillmentChannel []string `mws:"FulfillmentChannel.Channel"`
+
+	//PaymentMethod 值的列表。用来选择您指定的订单付款方式。
+	//	COD: 货到现金付款
+	//	CVS: 便利店付款
+	//	Other
+	//	COD 或 CVS 之外的任意付款方式
+	//	注： COD 和 CVS 值只在日本有效。
+	PaymentMethod []string
+
+	//BuyerEmail 买家的电子邮件地址。用来选择包含指定电子邮件地址的订单。
+	//	如果指定了 BuyerEmail 的值，则无法指定 FulfillmentChannel、 OrderStatus、 PaymentMethod、 LastUpdatedAfter、 LastUpdatedBefore 和 SellerOrderId 的值。
+	//	您在请求中所提供的电子邮件地址可以匿名（亚马逊）也可以不匿名。
+	BuyerEmail string
+
+	//卖家所指定的订单编码。不是亚马逊订单编号。用来选择与卖家所指定订单编码相匹配的订单。
+	//	如果指定了 SellerOrderId 的值，则无法指定FulfillmentChannel、 OrderStatus、 PaymentMethod、 LastUpdatedAfter、 LastUpdatedBefore 和 BuyerEmail 的值。
+	SellerOrderId string
+
+	//该数字用来指明每页可返回的最多订单数。该值必须介于 1 到 100 之间。默认值：100
+	MaxResultsPerPage int64
+
+	//TFMShipmentStatus 值的列表。用于选择使用亚马逊配送服务 (TFM) 且当前配送状态与您指定的某个状态值相符的订单。如果指定 TFMShipmentStatus，则仅返回 TFM 订单。
+	//请注意：TFMShipmentStatus 请求参数仅适用于中国地区。
+	//	PendingPickUp     亚马逊尚未从卖家处取件。
+	//	LabelCanceled     卖家取消了取件。
+	//	PickedUp          亚马逊已从卖家处取件。
+	//	AtDestinationFC   包裹已经抵达亚马逊运营中心。
+	//	Delivered         包裹已经配送给买家。
+	//	RejectedByBuyer   包裹被买家拒收。
+	//	Undeliverable     包裹无法配送。
+	//	ReturnedToSeller  包裹未配送给买家，已经退还给卖家。
+	//	Lost              包裹被承运人丢失。
+	TFMShipmentStatus []string `mws:"TFMShipmentStatus.Status"`
+}
+
+//ListOrders 返回您在指定时间段内所创建或更新的订单。
+//
+// **参考**
+//
+// http://docs.developer.amazonservices.com/en_US/orders-2013-09-01/Orders_ListOrders.html
+//
+// http://docs.developer.amazonservices.com/en_US/orders-2013-09-01/Orders_ListOrdersByNextToken.html
+//
+// **描述**
+//
+// 该 `ListOrders` 操作可返回您在指定时间段内创建或更新的订单列表。
+// 您可以通过 `CreatedAfter` 参数或 `LastUpdatedAfter` 参数来指定时间段。
+// 您必须使用其中一个参数，但不可同时使用两个参数。您还可以通过应用筛选条件来缩小返回的订单列表范围。
+//
+// 该 ListOrders 操作包括每个所返回订单的订单详情，
+// 其中包括 `AmazonOrderId`、 `OrderStatus`、 `FulfillmentChannel` 和 `LastUpdateDate`。
+//
+// **参数**
+//
+// `timeIsUpdate` 为 true, `startTime` 即 `LastUpdatedAfter`, 否则 为 `CreatedAfter`
+//
+// **限制**
+//
+// 共享最大请求限额为 6 个，恢复速率为每分钟 1 个请求。
+func (c *OrderClient) ListOrders(ctx context.Context, request ListOrdersRequest) (*OrdersResult, error) {
+	data := Param{}.SetAction("ListOrders").Load(request)
+	var response struct {
+		ResponseMetadata
+		Orders *OrdersResult `xml:"ListOrdersResult"`
+	}
+	if err := c.getResult(ctx, data, &response); err != nil {
+		return nil, err
+	}
+	return response.Orders, nil
+}
+
+//ListOrdersByNextToken 同 ListOrders
+func (c *OrderClient) ListOrdersByNextToken(ctx context.Context, nextToken string) (*OrdersResult, error) {
+	data := Param{}.SetAction("ListOrdersByNextToken")
+	data.Set("NextToken", nextToken)
+
+	var response struct {
+		ResponseMetadata
+		Orders *OrdersResult `xml:"ListOrdersByNextTokenResult"`
+	}
+	if err := c.getResult(ctx, data, &response); err != nil {
+		return nil, err
+	}
+	return response.Orders, nil
+}
+
 //OrdersResult 订单结果
 type OrdersResult struct {
 	NextToken         string
@@ -78,68 +208,4 @@ type Address struct {
 type PaymentExecutionDetailItem struct {
 	Payment       Money  `xml:"Payment"`
 	PaymentMethod string `xml:"PaymentMethod"`
-}
-
-//ListOrders 返回您在指定时间段内所创建或更新的订单。
-//
-// **参考**
-//
-// http://docs.developer.amazonservices.com/en_US/orders-2013-09-01/Orders_ListOrders.html
-//
-// http://docs.developer.amazonservices.com/en_US/orders-2013-09-01/Orders_ListOrdersByNextToken.html
-//
-// **描述**
-//
-// 该 `ListOrders` 操作可返回您在指定时间段内创建或更新的订单列表。
-// 您可以通过 `CreatedAfter` 参数或 `LastUpdatedAfter` 参数来指定时间段。
-// 您必须使用其中一个参数，但不可同时使用两个参数。您还可以通过应用筛选条件来缩小返回的订单列表范围。
-//
-// 该 ListOrders 操作包括每个所返回订单的订单详情，
-// 其中包括 `AmazonOrderId`、 `OrderStatus`、 `FulfillmentChannel` 和 `LastUpdateDate`。
-//
-// **参数**
-//
-// `timeIsUpdate` 为 true, `startTime` 即 `LastUpdatedAfter`, 否则 为 `CreatedAfter`
-//
-// **限制**
-//
-// 共享最大请求限额为 6 个，恢复速率为每分钟 1 个请求。
-func (s *OrderService) ListOrders(ctx context.Context, c *Credential, marketplaces []string, startTime time.Time, timeIsUpdate bool, maxPerPage int64, params ...Values) (string, *OrdersResult, error) {
-	data := ActionValues("ListOrders")
-	if !startTime.IsZero() {
-		if timeIsUpdate {
-			data.SetTime("LastUpdatedAfter", startTime)
-		} else {
-			data.SetTime("CreatedAfter", startTime)
-		}
-	}
-	if maxPerPage > 0 && maxPerPage != 100 {
-		data.SetInt("MaxResultsPerPage", maxPerPage)
-	}
-	data.Sets("MarketplaceId.Id", marketplaces...)
-	data.SetAll(params...)
-
-	var response struct {
-		BaseResponse
-		Orders *OrdersResult `xml:"ListOrdersResult"`
-	}
-	if _, err := s.FetchStruct(ctx, c, data, &response); err != nil {
-		return "", nil, err
-	}
-	return response.RequestID, response.Orders, nil
-}
-
-//ListOrdersByNextToken 同 ListOrders
-func (s *OrderService) ListOrdersByNextToken(ctx context.Context, c *Credential, nextToken string) (string, *OrdersResult, error) {
-	data := ActionValues("ListOrdersByNextToken")
-	data.Set("NextToken", nextToken)
-
-	var response struct {
-		BaseResponse
-		Orders *OrdersResult `xml:"ListOrdersByNextTokenResult"`
-	}
-	if _, err := s.FetchStruct(ctx, c, data, &response); err != nil {
-		return "", nil, err
-	}
-	return response.RequestID, response.Orders, nil
 }

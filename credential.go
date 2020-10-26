@@ -26,3 +26,9 @@ func GetCredentialFromEnv(sellerID, mwsAuthToken string) *Credential {
 func GetCredentialForTest() *Credential {
 	return GetCredentialFromEnv(os.Getenv("TestSellerId"), os.Getenv("TestMWSAuthToken"))
 }
+
+func CredentialOption(credential Credential) ClientOption {
+	return ClientOptionFunc(func(c *Client) {
+		c.credential = credential
+	})
+}

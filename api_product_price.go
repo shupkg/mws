@@ -2,28 +2,54 @@ package mws
 
 import "context"
 
-//GetMyPriceForASINResponse 商品价格获取响应体
-type GetMyPriceForASINResponse struct {
-	BaseResponse
-	GetMyPriceForASINResult []GetMyPriceForASINResult
+type ProductRequest struct {
+	//商城编码。指定返回商品信息的商城。
+	MarketplaceId string
+
+	//一个 SellerSKU 值的结构化列表。用于标识指定商城中的商品。SellerSKU 由您的 SellerId 限定，您提交的每个亚马逊商城网络服务（亚马逊 MWS）操作都需要包含您的 SellerId。
+	// 最大值：20 个 SellerSKU
+	SellerSKUList []string `mws:"SellerSKUList.SellerSKU"`
+
+	//一个 ASIN 值的结构化列表。用于标识指定商城中的商品。 最大值：20 个 ASIN。
+	ASINList []string `mws:"ASINList.ASIN"`
+
+	//根据商品状况筛纳入考虑范围的商品。有效值：New、Used、Collectible、Refurbished、Club。
+	ItemCondition string
 }
 
-//GetMyPriceForASINResult GetMyPriceForASINResult
-type GetMyPriceForASINResult struct {
+// GetMyPriceForSKU 根据 SellerSKU，返回您自己的商品的价格信息。
+// GetMyPriceForSKU 操作会根据您指定的 SellerSKU 和 MarketplaceId，返回您自己的商品的价格信息。请注意，如果您提交了并未销售的商品的 SellerSKU，则此操作会返回空的 Offers 元素。此操作最多可返回 20 款商品的价格信息。
+func (s *ProductClient) GetMyPrice(ctx context.Context, request ProductRequest) (prices []GetMyPriceResult, err error) {
+	data := Param{}.Load(request)
+
+	if len(request.ASINList) > 0 {
+		data.SetAction("GetMyPriceForASIN")
+		var result struct {
+			ResponseMetadata
+			GetMyPriceForASINResult []GetMyPriceResult
+		}
+		if err = s.getResult(ctx, data, &result); err != nil {
+			return
+		}
+		prices = result.GetMyPriceForASINResult
+	} else if len(request.SellerSKUList) > 0 {
+		data.SetAction("GetMyPriceForSKU")
+		var result struct {
+			ResponseMetadata
+			GetMyPriceForSKUResult []GetMyPriceResult
+		}
+		if err = s.getResult(ctx, data, &result); err != nil {
+			return
+		}
+		prices = result.GetMyPriceForSKUResult
+	}
+	return
+}
+
+//GetMyPriceResult GetMyPriceResult
+type GetMyPriceResult struct {
 	MarketplaceASIN MarketplaceASIN `xml:"Identifiers>MarketplaceASIN"` //商品ASIN标识
-	OfferPrice      []ProductOffer  `xml:"Product>Offers>Offer"`        //供应价格（销售价格）
-}
-
-//GetMyPriceForSKUResponse 商品价格获取响应体
-type GetMyPriceForSKUResponse struct {
-	BaseResponse
-	GetMyPriceForSKUResult []GetMyPriceForSKUResult
-}
-
-//GetMyPriceForSKUResult GetMyPriceForASINResult
-type GetMyPriceForSKUResult struct {
-	MarketplaceASIN MarketplaceASIN `xml:"Identifiers>MarketplaceASIN"` //商品ASIN标识
-	SKUIdentifier   SKUIdentifier   `xml:"Identifiers>SKUIdentifier"`   //商品SKU标识
+	SKUIdentifier   SKUIdentifier   `xml:"Identifiers>SKUIdentifier"`   //商品SKU标识, SKU请求时返回
 	OfferPrice      []ProductOffer  `xml:"Product>Offers>Offer"`        //供应价格（销售价格）
 }
 
@@ -51,39 +77,4 @@ type SKUIdentifier struct {
 	MarketplaceID string `xml:"MarketplaceId"`
 	SellerID      string `xml:"SellerId"`
 	SellerSKU     string
-}
-
-// GetMyPriceForSKU 根据 SellerSKU，返回您自己的商品的价格信息。
-//
-// GetMyPriceForSKU 操作会根据您指定的 SellerSKU 和 MarketplaceId，返回您自己的商品的价格信息。请注意，如果您提交了并未销售的商品的 SellerSKU，则此操作会返回空的 Offers 元素。此操作最多可返回 20 款商品的价格信息。
-func (s *ProductService) GetMyPriceForSKU(ctx context.Context, c *Credential, marketplace string, sellerSKUList []string, itemCondition string) (requestID string, prices []GetMyPriceForSKUResult, err error) {
-	data := ActionValues("GetMyPriceForSKU")
-	data.Set("MarketplaceId", marketplace)
-	data.Sets("SellerSKUList.SKU", sellerSKUList...)
-	data.Set("ItemCondition", itemCondition)
-	var result GetMyPriceForSKUResponse
-	if _, err = s.FetchStruct(ctx, c, data, &result); err != nil {
-		return
-	}
-	requestID = result.RequestID
-	prices = result.GetMyPriceForSKUResult
-	return
-}
-
-// GetMyPriceForASIN 根据 ASIN，返回您自己的商品的价格信息。
-//
-// GetMyPriceForASIN 操作与 GetMyPriceForSKU 大体相同，但前者使用 MarketplaceId 和 ASIN 来唯一标识一件商品，且不会返回 SKUIdentifier 元素。
-func (s *ProductService) GetMyPriceForASIN(ctx context.Context, c *Credential, marketplace string, asinList []string, itemCondition string) (requestID string, prices []GetMyPriceForASINResult, err error) {
-	data := ActionValues("GetMyPriceForASIN")
-	data.Set("MarketplaceId", marketplace)
-	data.Sets("ASINList.ASIN", asinList...)
-	data.Set("ItemCondition", itemCondition)
-	var result GetMyPriceForASINResponse
-	if _, err = s.FetchStruct(ctx, c, data, &result)
-		err != nil {
-		return
-	}
-	requestID = result.RequestID
-	prices = result.GetMyPriceForASINResult
-	return
 }

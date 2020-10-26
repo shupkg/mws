@@ -2,9 +2,13 @@ package mws
 
 /* 公共模型 */
 
-//BaseResponse 基础模型，含请求ID
-type BaseResponse struct {
+//ResponseMetadata 基础模型，含请求ID
+type ResponseMetadata struct {
 	RequestID string `xml:"ResponseMetadata>RequestId"`
+}
+
+func (meta ResponseMetadata) GetRequestID() string {
+	return meta.RequestID
 }
 
 //Money 金额信息
