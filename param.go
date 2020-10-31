@@ -26,6 +26,22 @@ type Valuer interface {
 	String() string
 }
 
+func ParamStruct(paramStructs ...interface{}) Param {
+	p := Param{}
+	for _, paramStruct := range paramStructs {
+		p = p.From(paramStruct)
+	}
+	return p
+}
+
+func ParamSet(key string, value interface{}) Param {
+	return Param{}.Set(key, value)
+}
+
+func ParamNexToken(nextToken string) Param {
+	return ParamSet("NexToken", nextToken)
+}
+
 type Param map[string]string
 
 func (p Param) Set(key string, value interface{}) Param {
@@ -138,11 +154,16 @@ func (p Param) Encode() string {
 	return buf.String()
 }
 
-func (p Param) Load(param interface{}) Param {
-	if param == nil {
+func (p Param) From(paramStruct interface{}) Param {
+	if paramStruct == nil {
+		log.Errorf("param struct is nil")
 		return p
 	}
-	v := reflect.Indirect(reflect.ValueOf(param))
+	v := reflect.Indirect(reflect.ValueOf(paramStruct))
+	if v.Kind() != reflect.Struct {
+		log.Errorf("param struct must be struct or struct pointer")
+		return p
+	}
 	t := v.Type()
 	for i := 0; i < t.NumField(); i++ {
 		f := t.Field(i)

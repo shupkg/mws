@@ -14,87 +14,79 @@ import (
 	"time"
 )
 
-var CreateHTTPClient = func() *http.Client {
-	return &http.Client{}
-}
-
 //Client Client
 type Client struct {
-	httpc      *http.Client
-	userAgent  string
-	api        string
-	version    string
-	credential Credential
-	debug      bool
+	HttpClient *http.Client
 
-	id  string
-	raw []byte
+	Credential Credential
+	Api        string
+	Version    string
+
+	userAgent string
+	debug     bool
+
+	lastAction string
+	lastRID    string
+	lastRaw    []byte
 }
 
-type ClientOption interface {
-	Apply(*Client)
-}
-
-type ClientOptionFunc func(*Client)
-
-func (f ClientOptionFunc) Apply(c *Client) {
-	f(c)
-}
-
-type RequestID interface {
-	GetRequestID() string
-}
-
-func createClient(options ...ClientOption) *Client {
+func createClient(options ...Option) *Client {
 	c := &Client{
-		httpc:     CreateHTTPClient(),
-		userAgent: fmt.Sprintf("go-mws-sdk/v%s (Language=%s; Platform=%s-%s; sdk=github.com/shupkg/mws)", Version, strings.Replace(runtime.Version(), "go", "go/", -1), runtime.GOOS, runtime.GOARCH),
+		HttpClient: &http.Client{},
+		userAgent:  fmt.Sprintf("go-mws-sdk/v%s (Language=%s; Platform=%s-%s; sdk=github.com/shupkg/mws)", Version, strings.Replace(runtime.Version(), "go", "go/", -1), runtime.GOOS, runtime.GOARCH),
 	}
+	c.SetOptions(defaultOptions...)
 	c.SetOptions(options...)
 	return c
 }
 
-func (c *Client) SetOptions(options ...ClientOption) {
+func (c *Client) SetOptions(options ...Option) {
 	for _, option := range options {
 		option.Apply(c)
 	}
 }
 
 func (c *Client) GetRequestID() string {
-	return c.id
+	return c.lastRID
 }
 
 func (c *Client) GetRaw() []byte {
-	return c.raw
+	return c.lastRaw
 }
 
-//getResult 请求
-func (c *Client) getBytes(ctx context.Context, data Param) ([]byte, error) {
-	c.id = ""
-	if len(c.raw) > 0 {
-		c.raw = c.raw[:0]
+func (c *Client) getBytes(ctx context.Context, action string, data Param, result interface{}) ([]byte, error) {
+	// reset last data
+	c.lastAction = action
+	c.lastRID = ""
+	if len(c.lastRaw) > 0 {
+		c.lastRaw = c.lastRaw[:0]
 	}
+	if data == nil {
+		data = Param{}
+	}
+	data.SetAction(action)
 
-	c.doSignature(c.credential, data)
-	u := "https://" + Amazon.GetServiceHost(c.credential.MarketplaceID) + c.api
+	c.doSignature(c.Credential, data)
+	u := "https://" + Region.GetServiceHost(c.Credential.MarketplaceID) + c.Api
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, u, strings.NewReader(data.Encode()))
 	if err != nil {
-		return nil, err
+		return nil, c.errorFromSDK(u, data.Encode(), "Param", err)
 	}
 	req.Header.Set("User-Agent", c.userAgent)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	resp, err := c.httpc.Do(req)
+	resp, err := c.HttpClient.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, c.errorFromRequest(u, data.Encode(), err)
 	}
 	defer resp.Body.Close()
 	v, err := ioutil.ReadAll(resp.Body)
+	c.lastRaw = v
 	if err != nil {
-		return c.raw, err
+		return c.lastRaw, c.errorFromSDK(u, data.Encode(), "Response", err)
 	}
-	c.raw = v
+
 	if c.debug {
 		log.Debugf("-------------------------")
 		log.Debugf("请求地址: %s", u)
@@ -108,47 +100,41 @@ func (c *Client) getBytes(ctx context.Context, data Param) ([]byte, error) {
 	}
 
 	if resp.StatusCode == http.StatusOK {
-		return c.raw, nil
+		if result != nil {
+			if err = xml.Unmarshal(v, result); err != nil {
+				return v, c.errorFromXmlParser(u, data.Encode(), err)
+			}
+
+			if meta, ok := result.(RequestID); ok {
+				c.lastRID = meta.GetRequestID()
+			}
+		}
+
+		if c.lastRID == "" {
+			var meta ResponseMetadata
+			_ = xml.Unmarshal(v, &meta)
+			c.lastRID = meta.GetRequestID()
+		}
+
+		return v, nil
 	}
 
 	//请求不成功
-	ex := Error{}
+	var ex Error
 	if err := xml.Unmarshal(v, &ex); err != nil {
-		return v, err
+		return v, c.errorFromXmlParser(u, data.Encode(), err)
 	}
-	return v, &ex
+	return v, c.errorFill(u, data.Encode(), ex)
 }
 
-//getResult 请求
-func (c *Client) getResult(ctx context.Context, data Param, result interface{}) error {
-	v, err := c.getBytes(ctx, data)
-	if err != nil {
-		return err
-	}
-	c.raw = v
-	if len(v) > 0 {
-		if result != nil {
-			err = xml.Unmarshal(v, result)
-			if err == nil {
-				return err
-			}
-			if meta, ok := result.(RequestID); ok {
-				c.id = meta.GetRequestID()
-			}
-		}
-
-		if c.id == "" {
-			var meta ResponseMetadata
-			_ = xml.Unmarshal(v, &meta)
-			c.id = meta.GetRequestID()
-		}
-	}
-	return nil
+func (c *Client) getResult(ctx context.Context, action string, data Param, result interface{}) error {
+	_, err := c.getBytes(ctx, action, data, result)
+	return err
 }
 
 //对参数签名
 func (c *Client) doSignature(credential Credential, data Param) {
-	data.Set(keyVersion, c.version)
+	data.Set(keyVersion, c.Version)
 	data.Set(keyAWSAccessKeyID, credential.AWSAccessKeyID)
 	data.Set(keyMWSAuthToken, credential.MWSAuthToken)
 	data.Set(keySellerID, credential.SellerID)
@@ -157,22 +143,10 @@ func (c *Client) doSignature(credential Credential, data Param) {
 	data.Set(keyTimestamp, time.Now().UTC().Format(time.RFC3339))
 	data.Del(keySignature)
 
-	s := "POST\n" + Amazon.GetServiceHost(credential.MarketplaceID) + "\n" + c.api + "\n" + data.Encode()
+	s := "POST\n" + Region.GetServiceHost(credential.MarketplaceID) + "\n" + c.Api + "\n" + data.Encode()
 
 	mac := hmac.New(sha256.New, []byte(credential.SecretKey))
 	mac.Write([]byte(s))
 	signature := base64.StdEncoding.EncodeToString(mac.Sum(nil))
 	data.Set(keySignature, signature)
-}
-
-//GetServiceStatus 获取服务状态
-func (c *Client) GetServiceStatus(ctx context.Context) (string, error) {
-	result := struct {
-		Status string `xml:"GetServiceStatusResult>Status"`
-	}{}
-
-	if err := c.getResult(ctx, Param{}.SetAction("GetServiceStatus"), &result); err != nil {
-		return "", err
-	}
-	return result.Status, nil
 }

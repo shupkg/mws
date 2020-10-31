@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-var Amazon = newMap()
+var Region = newMap()
 
 //国家信息
 type Country struct {

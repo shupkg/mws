@@ -3,30 +3,32 @@ package mws
 import "context"
 
 //GetMatchingProductForID 根据 ASIN、GCID、SellerSKU、UPC、EAN、ISBN 和 JAN，返回商品及其属性列表。
-//根据您指定的商品编码值列表，GetMatchingProductForId 操作会返回一个包含商品及其属性的列表。可能的商品编号包括：ASIN、GCID、SellerSKU、UPC、EAN、ISBN 和 JAN。
-func (s *ProductClient) GetMatchingProductForID(ctx context.Context, request ProductRequest) (string, []*Product, error) {
-	data := Param{}.SetAction("GetMatchingProductForId").Load(request)
-
-	var response struct {
+//  **参考**
+//    http://docs.developer.amazonservices.com/zh_CN/products/Products_GetMatchingProductForId.html
+//  **描述**
+//    根据您指定的商品编码值列表，GetMatchingProductForId 操作会返回一个包含商品及其属性的列表。可能的商品编号包括：ASIN、GCID、SellerSKU、UPC、EAN、ISBN 和 JAN。
+//  **参数**
+//    MarketplaceId  *商城编码。指定返回商品的商城。
+//    IdType         *Id 值表示的商品编码的类型。有效值为：ASIN、GCID、SellerSKU、UPC、EAN、ISBN 和 JAN。
+//    IdList         *一个 Id 值的结构化列表。用于标识指定商城中的商品。 最大值：5 个 Id
+func (c *Client) GetMatchingProductForID(ctx context.Context, request ProductRequest) (result []*Product, err error) {
+	var resp struct {
 		ResponseMetadata
-		ProductResults []GetMatchingProductForIDResult `xml:"GetMatchingProductForIdResult"`
+		Result []GetMatchingProductForIDResult `xml:"GetMatchingProductForIdResult"`
 	}
-
-	if err := s.getResult(ctx,  data, &response); err != nil {
-		return "", nil, err
-	}
-	var products []*Product
-	for _, result := range response.ProductResults {
-		if result.Status == "Success" {
-			products = append(products, result.Products...)
+	err = c.getResult(ctx, "GetMatchingProductForId", ParamStruct(request), &resp)
+	if err == nil {
+		for _, resultItem := range resp.Result {
+			if resultItem.Status == "Success" {
+				result = append(result, resultItem.Products...)
+			}
 		}
 	}
-	return response.RequestID, products, nil
+	return
 }
 
 //GetMatchingProductForIDResult GetMatchingProductForIdResult
 type GetMatchingProductForIDResult struct {
-	ResponseMetadata
 	ID       string     `xml:"Id,attr"`
 	IDType   string     `xml:"IdType,attr"`
 	Status   string     `xml:"status,attr"`

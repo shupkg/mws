@@ -3,45 +3,35 @@ package mws
 import "context"
 
 //ListOrderItems 根据您指定的 AmazonOrderId 返回订单商品。
+//  **参考**
+//    http://docs.developer.amazonservices.com/en_US/orders-2013-09-01/Orders_ListOrderItems.html
+//    http://docs.developer.amazonservices.com/en_US/orders-2013-09-01/Orders_ListOrderItemsByNextToken.html
+//  **描述**
+//    该操作可为您所指定的 AmazonOrderId 返回订单商品信息。
+//    订单商品信息包括 Title、ASIN、 SellerSKU、ItemPrice、 ShippingPrice 以及税费和促销信息。
 //
-// http://docs.developer.amazonservices.com/en_US/orders-2013-09-01/Orders_ListOrderItems.html
-// http://docs.developer.amazonservices.com/en_US/orders-2013-09-01/Orders_ListOrderItemsByNextToken.html
-//
-// 该 ListOrderItems 操作可为您所指定的 AmazonOrderId 返回订单商品信息。
-// 订单商品信息包括 Title、ASIN、 SellerSKU、ItemPrice、 ShippingPrice 以及税费和促销信息。
-//
-// 您可以通过 ListOrders 操作来检索订单商品信息，进而找到您在指定时间段内所创建或更新的订单。
-// 所返回的订单中包含 AmazonOrderId。
-// 然后，您便可以通过操作使用这些 AmazonOrderId 值，ListOrderItems 以获取每个订单的详细订单商品信息。
-//
-// 共享最大请求限额为 30 个，恢复速率为每 2 秒钟 1 个请求。
-func (c *Client) ListOrderItems(ctx context.Context, amazonOrderID string) (orderItemsResult *OrderItemsResult, err error) {
-	data := Param{}.SetAction("ListOrderItems")
-	data.Set("AmazonOrderId", amazonOrderID)
-
-	var response struct {
-		ResponseMetadata
-		OrderItems *OrderItemsResult `xml:"ListOrderItemsResult"`
+//    您可以通过 ListOrders 操作来检索订单商品信息，进而找到您在指定时间段内所创建或更新的订单。
+//    所返回的订单中包含 AmazonOrderId。
+//    然后，您便可以通过操作使用这些 AmazonOrderId 值，ListOrderItems 以获取每个订单的详细订单商品信息。
+//  **限额**
+//    共享最大请求限额为 30 个，恢复速率为每 2 秒钟 1 个请求。
+func (c *Client) ListOrderItems(ctx context.Context, amazonOrderID, nextToken string) (result OrderItemsResult, err error) {
+	if nextToken == "" {
+		var resp struct {
+			ResponseMetadata
+			Result OrderItemsResult `xml:"ListOrderItemsResult"`
+		}
+		err = c.getResult(ctx, "ListOrderItems", ParamSet("AmazonOrderId", amazonOrderID), &resp)
+		result = resp.Result
+	} else {
+		var resp struct {
+			ResponseMetadata
+			Result OrderItemsResult `xml:"ListOrderItemsByNextTokenResult"`
+		}
+		err = c.getResult(ctx, "ListOrderItemsByNextToken", ParamNexToken(nextToken), &resp)
+		result = resp.Result
 	}
-	if err := c.getResult(ctx, data, &response); err != nil {
-		return nil, err
-	}
-	return response.OrderItems, nil
-}
-
-//ListOrderItemsByNextToken 同 ListOrderItems
-func (c *Client) ListOrderItemsByNextToken(ctx context.Context, nextToken string) (*OrderItemsResult, error) {
-	data := Param{}.SetAction("ListOrderItemsByNextToken")
-	data.Set("NextToken", nextToken)
-
-	var response struct {
-		ResponseMetadata
-		OrderItems *OrderItemsResult `xml:"ListOrderItemsByNextTokenResult"`
-	}
-	if err := c.getResult(ctx, data, &response); err != nil {
-		return nil, err
-	}
-	return response.OrderItems, nil
+	return
 }
 
 //OrderItemsResult .

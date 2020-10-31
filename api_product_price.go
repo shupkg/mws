@@ -17,31 +17,32 @@ type ProductRequest struct {
 	ItemCondition string
 }
 
-// GetMyPriceForSKU 根据 SellerSKU，返回您自己的商品的价格信息。
-// GetMyPriceForSKU 操作会根据您指定的 SellerSKU 和 MarketplaceId，返回您自己的商品的价格信息。请注意，如果您提交了并未销售的商品的 SellerSKU，则此操作会返回空的 Offers 元素。此操作最多可返回 20 款商品的价格信息。
-func (s *ProductClient) GetMyPrice(ctx context.Context, request ProductRequest) (prices []GetMyPriceResult, err error) {
-	data := Param{}.Load(request)
-
+//GetMyPrice 根据 SellerSKU/ASIN，返回您自己的商品的价格信息。
+//  **描述**
+//    该方法是Api GetMyPriceForSKU 和 GetMyPriceForASIN 的合集，依据传入的 SellerSKUList 和 ASINList 判断
+//    该操作会根据您指定的 SellerSKU/ASIN 和 MarketplaceId，返回您自己的商品的价格信息。请注意，如果您提交了并未销售的商品的 SellerSKU/ASIN，则此操作会返回空的 Offers 元素。此操作最多可返回 20 款商品的价格信息。
+//  **参数**
+//    MarketplaceId  *商城编码。指定返回价格的商城。
+//    ASINList       *一个 ASIN 值的结构化列表。用于标识指定商城中的商品。最大值：20 个 ASIN。
+//    SellerSKUList  *一个 SellerSKU 值的结构化列表。用于标识指定商城中的商品。SellerSKU 由您的 SellerId 限定，您提交的每个亚马逊商城网络服务（亚马逊 MWS）操作都需要包含您的 SellerId。最大值：20 个 SellerSKU
+//    ItemCondition  根据商品状况筛选纳入考虑范围的商品。有效值：New、Used、Collectible、Refurbished、Club。默认值：全部
+//    *ASINList和SellerSKUList 必须且只能其中一个有值
+func (c *Client) GetMyPrice(ctx context.Context, request ProductRequest) (prices []GetMyPriceResult, err error) {
+	data := ParamStruct(request)
 	if len(request.ASINList) > 0 {
-		data.SetAction("GetMyPriceForASIN")
-		var result struct {
+		var resp struct {
 			ResponseMetadata
-			GetMyPriceForASINResult []GetMyPriceResult
+			Result []GetMyPriceResult
 		}
-		if err = s.getResult(ctx, data, &result); err != nil {
-			return
-		}
-		prices = result.GetMyPriceForASINResult
+		err = c.getResult(ctx, "GetMyPriceForASIN", data, &resp)
+		prices = resp.Result
 	} else if len(request.SellerSKUList) > 0 {
-		data.SetAction("GetMyPriceForSKU")
-		var result struct {
+		var resp struct {
 			ResponseMetadata
-			GetMyPriceForSKUResult []GetMyPriceResult
+			Result []GetMyPriceResult
 		}
-		if err = s.getResult(ctx, data, &result); err != nil {
-			return
-		}
-		prices = result.GetMyPriceForSKUResult
+		err = c.getResult(ctx, "GetMyPriceForSKU", data, &resp)
+		prices = resp.Result
 	}
 	return
 }
