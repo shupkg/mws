@@ -39,7 +39,7 @@ func ParamSet(key string, value interface{}) Param {
 }
 
 func ParamNexToken(nextToken string) Param {
-	return ParamSet("NexToken", nextToken)
+	return ParamSet("NextToken", nextToken)
 }
 
 type Param map[string]string
