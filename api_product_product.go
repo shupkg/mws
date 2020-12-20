@@ -2,6 +2,12 @@ package mws
 
 import "context"
 
+type GetMatchingProductForIDRequest struct {
+	MarketplaceId string   ``                //商城编码。指定返回商品信息的商城。
+	IdType        string   ``                //Id 值表示的商品编码的类型。有效值为：ASIN、GCID、SellerSKU、UPC、EAN、ISBN 和 JAN。
+	IdList        []string `mws:"IdList.Id"` //一个 Id 值的结构化列表。用于标识指定商城中的商品。最大值：5 个 Id
+}
+
 //GetMatchingProductForID 根据 ASIN、GCID、SellerSKU、UPC、EAN、ISBN 和 JAN，返回商品及其属性列表。
 //  **参考**
 //    http://docs.developer.amazonservices.com/zh_CN/products/Products_GetMatchingProductForId.html
@@ -11,7 +17,7 @@ import "context"
 //    MarketplaceId  *商城编码。指定返回商品的商城。
 //    IdType         *Id 值表示的商品编码的类型。有效值为：ASIN、GCID、SellerSKU、UPC、EAN、ISBN 和 JAN。
 //    IdList         *一个 Id 值的结构化列表。用于标识指定商城中的商品。 最大值：5 个 Id
-func (c *Client) GetMatchingProductForID(ctx context.Context, request ProductRequest) (result []*Product, err error) {
+func (c *Client) GetMatchingProductForID(ctx context.Context, request GetMatchingProductForIDRequest) (result []*Product, err error) {
 	var resp struct {
 		ResponseMetadata
 		Result []GetMatchingProductForIDResult `xml:"GetMatchingProductForIdResult"`

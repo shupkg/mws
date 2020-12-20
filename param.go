@@ -156,12 +156,11 @@ func (p Param) Encode() string {
 
 func (p Param) From(paramStruct interface{}) Param {
 	if paramStruct == nil {
-		log.Errorf("param struct is nil")
 		return p
 	}
 	v := reflect.Indirect(reflect.ValueOf(paramStruct))
 	if v.Kind() != reflect.Struct {
-		log.Errorf("param struct must be struct or struct pointer")
+		//todo log.Warnf("param struct must be struct or struct pointer")
 		return p
 	}
 	t := v.Type()

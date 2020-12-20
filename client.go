@@ -16,7 +16,7 @@ import (
 
 //Client Client
 type Client struct {
-	HttpClient *http.Client
+	cli *http.Client
 
 	Credential Credential
 	Api        string
@@ -25,6 +25,8 @@ type Client struct {
 	userAgent string
 	debug     bool
 
+	log Printer
+
 	lastAction string
 	lastRID    string
 	lastRaw    []byte
@@ -32,18 +34,17 @@ type Client struct {
 
 func createClient(options ...Option) *Client {
 	c := &Client{
-		HttpClient: &http.Client{},
-		userAgent:  fmt.Sprintf("go-mws-sdk/v%s (Language=%s; Platform=%s-%s; sdk=github.com/shupkg/mws)", Version, strings.Replace(runtime.Version(), "go", "go/", -1), runtime.GOOS, runtime.GOARCH),
+		cli:       &http.Client{},
+		userAgent: fmt.Sprintf("go-mws-sdk/v%s (Language=%s; Platform=%s-%s; sdk=github.com/shupkg/mws)", Version, strings.Replace(runtime.Version(), "go", "go/", -1), runtime.GOOS, runtime.GOARCH),
 	}
-	c.SetOptions(defaultOptions...)
-	c.SetOptions(options...)
-	return c
+	return c.With(LogSTD()).With(defaultOptions...).With(options...)
 }
 
-func (c *Client) SetOptions(options ...Option) {
+func (c *Client) With(options ...Option) *Client {
 	for _, option := range options {
-		option.Apply(c)
+		option(c)
 	}
+	return c
 }
 
 func (c *Client) GetRequestID() string {
@@ -76,7 +77,7 @@ func (c *Client) getBytes(ctx context.Context, action string, data Param, result
 	req.Header.Set("User-Agent", c.userAgent)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	resp, err := c.HttpClient.Do(req)
+	resp, err := c.cli.Do(req)
 	if err != nil {
 		return nil, c.errorFromRequest(u, data.Encode(), err)
 	}
@@ -88,15 +89,15 @@ func (c *Client) getBytes(ctx context.Context, action string, data Param, result
 	}
 
 	if c.debug {
-		log.Debugf("-------------------------")
-		log.Debugf("请求地址: %s", u)
-		log.Debugf("请求参数: %s", data.Encode())
-		if len(v) > 500 {
-			log.Debugf("响应内容: %d", len(v))
-		} else {
-			log.Debugf("响应内容: %s", string(v))
+		c.log.Printf("-------------------------\n")
+		c.log.Printf("请求地址: %s\n", u)
+		c.log.Printf("请求参数: %s\n", data.Encode())
+		c.log.Printf("响应代码: %s", resp.Status)
+		c.log.Printf("响应长度: %s", resp.Header.Get("Content-Length"))
+		if len(v) < 1024 {
+			c.log.Printf("响应内容: %s\n", string(v))
 		}
-		log.Debugf("-------------------------")
+		c.log.Printf("-------------------------\n")
 	}
 
 	if resp.StatusCode == http.StatusOK {
